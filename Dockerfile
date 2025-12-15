@@ -76,4 +76,5 @@ ENV PORT 3000
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
 # Copy seed DB to persistent volume on first boot if it doesn't exist
-CMD sh -c 'if [ ! -f /app/data/multiplicity.db ] && [ -f /app/seed/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db; fi; HOSTNAME="0.0.0.0" node server.js'
+# Ensure data directory exists and has proper permissions
+CMD sh -c 'mkdir -p /app/data && if [ ! -f /app/data/multiplicity.db ] && [ -f /app/seed/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db; fi; HOSTNAME="0.0.0.0" node server.js'
