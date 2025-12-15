@@ -67,6 +67,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/seed ./seed
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy native dependencies (libsql) that aren't included in standalone output
+# pnpm uses a different structure, so we need to copy the entire node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
 USER nextjs
 
 EXPOSE 3000
@@ -77,4 +81,4 @@ ENV PORT 3000
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
 # Copy seed DB to persistent volume on first boot if it doesn't exist
 # Ensure data directory exists and has proper permissions
-CMD sh -c 'mkdir -p /app/data && if [ ! -f /app/data/multiplicity.db ] && [ -f /app/seed/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db; fi; HOSTNAME="0.0.0.0" node server.js'
+CMD sh -c 'mkdir -p /app/data && chmod 777 /app/data && if [ ! -f /app/data/multiplicity.db ] && [ -f /app/seed/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db && chmod 666 /app/data/multiplicity.db; fi; HOSTNAME="0.0.0.0" node server.js'
