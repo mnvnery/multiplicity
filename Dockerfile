@@ -43,8 +43,8 @@ WORKDIR /app
 
 ENV NODE_ENV production
 
-# Install build tools for native modules (libsql needs these)
-RUN apk add --no-cache libc6-compat python3 make g++
+# Install build tools for native modules (libsql needs these) and su-exec for user switching
+RUN apk add --no-cache libc6-compat python3 make g++ su-exec
 
 # Install pnpm for installing native deps if needed
 RUN corepack enable pnpm
@@ -69,6 +69,10 @@ RUN chmod 755 /app/data
 # Copy seed directory (includes seed database if it exists)
 COPY --from=builder --chown=nextjs:nodejs /app/seed ./seed
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -89,15 +93,14 @@ RUN \
   # Clean up package manager cache
   rm -rf /tmp/* /var/cache/apk/* /root/.npm /root/.cache
 
-USER nextjs
+# Don't switch to nextjs user here - entrypoint script will handle it
+# USER nextjs
 
 EXPOSE 3000
 
 ENV PORT 3000
+ENV HOSTNAME 0.0.0.0
 ENV NODE_PATH=/app/node_modules
 
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
-# Copy seed DB to persistent volume on first boot if it doesn't exist
-# Ensure directory exists, is writable, and database file is accessible
-CMD sh -c 'mkdir -p /app/data && if [ -f /app/seed/multiplicity.db ] && [ ! -f /app/data/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db && echo "✓ Database seeded"; fi && if [ ! -w /app/data ]; then echo "⚠ Warning: /app/data is not writable"; fi && echo "Database path: /app/data/multiplicity.db" && ls -la /app/data/ 2>&1 && HOSTNAME="0.0.0.0" node server.js'
+# Use entrypoint script to handle database seeding and user switching
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
