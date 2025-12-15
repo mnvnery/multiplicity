@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react'
 import Image from 'next/image'
+import { IoIosArrowBack, IoIosArrowForward, IoIosClose } from 'react-icons/io'
 import { textVariants, cn } from '../lib/variants'
 
 interface Speaker {
@@ -118,7 +119,19 @@ export function SpeakerBioOverlay({
   onPrev,
 }: SpeakerBioOverlayProps) {
   const [cursorArea, setCursorArea] = useState<'left' | 'center' | 'right' | null>(null)
+  const [isOverLink, setIsOverLink] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const prevIsOpenRef = useRef<boolean | null>(null)
+  const prevIndexRef = useRef(currentIndex)
+  const lastNavigationDirectionRef = useRef<'next' | 'prev'>('next')
+  const [shouldAnimateText, setShouldAnimateText] = useState(false)
+
+  // Smooth spring animations for cursor position
+  const cursorX = useMotionValue(0)
+  const cursorY = useMotionValue(0)
+  const springConfig = { damping: 25, stiffness: 300, mass: 0.5 }
+  const cursorXSpring = useSpring(cursorX, springConfig)
+  const cursorYSpring = useSpring(cursorY, springConfig)
 
   const currentSpeaker = speakers[currentIndex]
   const imageData =
@@ -126,6 +139,45 @@ export function SpeakerBioOverlay({
       ? currentSpeaker.image
       : null
   const imageUrl = imageData?.url
+
+  // Track if we should animate text (only on open/close, not navigation)
+  const isNavigating =
+    isOpen &&
+    prevIsOpenRef.current !== null &&
+    prevIsOpenRef.current &&
+    prevIndexRef.current !== currentIndex
+
+  // Wrapped callbacks to track navigation direction
+  const handleNext = useCallback(() => {
+    lastNavigationDirectionRef.current = 'next'
+    onNext()
+  }, [onNext])
+
+  const handlePrev = useCallback(() => {
+    lastNavigationDirectionRef.current = 'prev'
+    onPrev()
+  }, [onPrev])
+
+  // Determine if we're navigating and use the tracked direction
+  const navigationDirection = isNavigating ? lastNavigationDirectionRef.current : 'next'
+
+  useEffect(() => {
+    const isOpeningOrClosing = prevIsOpenRef.current !== isOpen
+
+    if (isOpeningOrClosing) {
+      // Opening or closing - enable animations
+      setShouldAnimateText(true)
+    } else if (isOpen && prevIndexRef.current !== currentIndex) {
+      // Navigating - disable animations and update index
+      setShouldAnimateText(false)
+      prevIndexRef.current = currentIndex
+    } else if (isOpen) {
+      // Already open and not navigating - keep animations disabled
+      setShouldAnimateText(false)
+    }
+
+    prevIsOpenRef.current = isOpen
+  }, [isOpen, currentIndex])
 
   useEffect(() => {
     if (!isOpen) return
@@ -136,21 +188,25 @@ export function SpeakerBioOverlay({
     const handleMouseMove = (e: MouseEvent) => {
       if (!overlayRef.current || !isDesktop) {
         setCursorArea(null)
+        setIsOverLink(false)
         return
       }
 
-      // Check if hovering over a link - if so, use default cursor
+      // Update mouse position for custom cursor with smooth spring animation
+      cursorX.set(e.clientX)
+      cursorY.set(e.clientY)
+
+      // Check if hovering over a link
       const target = e.target as HTMLElement
-      if (target.closest('a')) {
-        setCursorArea(null)
-        return
-      }
+      const isLink = !!target.closest('a')
+      setIsOverLink(isLink)
 
       const rect = overlayRef.current.getBoundingClientRect()
       const x = e.clientX - rect.left
       const width = rect.width
       const third = width / 3
 
+      // Still determine cursor area even when over links, so we can show scaled-down cursor
       if (x < third) {
         setCursorArea('left')
       } else if (x > third * 2) {
@@ -173,9 +229,9 @@ export function SpeakerBioOverlay({
       const third = width / 3
 
       if (x < third) {
-        onPrev()
+        handlePrev()
       } else if (x > third * 2) {
-        onNext()
+        handleNext()
       } else {
         onClose()
       }
@@ -188,22 +244,14 @@ export function SpeakerBioOverlay({
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('click', handleClick)
     }
-  }, [isOpen, onClose, onNext, onPrev])
+  }, [isOpen, onClose, handleNext, handlePrev])
 
   const getCursorStyle = () => {
     // Only show custom cursor on desktop
     if (typeof window !== 'undefined' && window.innerWidth < 768) return 'default'
-    if (!cursorArea) return 'default'
-    switch (cursorArea) {
-      case 'left':
-        return 'url("/prev.svg") 16 16, auto'
-      case 'right':
-        return 'url("/next.svg") 16 16, auto'
-      case 'center':
-        return 'url("/close.svg") 16 16, auto'
-      default:
-        return 'default'
-    }
+    // Hide default cursor when showing custom cursor or link cursor
+    if (isOverLink || cursorArea) return 'none'
+    return 'default'
   }
 
   // Early return check after all hooks
@@ -218,110 +266,294 @@ export function SpeakerBioOverlay({
           ref={overlayRef}
           initial={{
             y: '100%',
-            rotate: 3,
-            opacity: 0,
+            rotate: 5,
           }}
           animate={{
             y: 0,
             rotate: 0,
-            opacity: 1,
           }}
           exit={{
             y: '100%',
-            rotate: -3,
-            opacity: 0,
+            rotate: 5,
           }}
           transition={{
             duration: 0.8,
             ease: [0.4, 0, 0.2, 1],
           }}
           className="fixed inset-0 z-[10000] overflow-y-auto"
-          style={{ backgroundColor: '#E8D5FF', cursor: getCursorStyle() }}
+          style={{ backgroundColor: '#BFA9FF', cursor: getCursorStyle() }}
         >
-          <AnimatePresence mode="wait">
+          {/* Mobile Navigation Controls */}
+          <div className="md:hidden fixed top-0 left-0 right-0 z-[10001] flex justify-between items-center px-0 pt-2 pb-0 bg-[#BFA9FF]">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handlePrev}
+                className="p-2 hover:opacity-70 transition-opacity"
+                aria-label="Previous speaker"
+              >
+                <IoIosArrowBack className="w-9 h-9" />
+              </button>
+              <button
+                onClick={handleNext}
+                className="p-2 hover:opacity-70 transition-opacity"
+                aria-label="Next speaker"
+              >
+                <IoIosArrowForward className="w-9 h-9" />
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:opacity-70 transition-opacity"
+              aria-label="Close"
+            >
+              <IoIosClose className="w-14 h-14" />
+            </button>
+          </div>
+
+          {/* Custom SVG cursor */}
+          {typeof window !== 'undefined' && window.innerWidth >= 768 && cursorArea && (
+            <motion.div
+              className="pointer-events-none fixed z-[10001]"
+              style={{
+                x: cursorXSpring,
+                y: cursorYSpring,
+                translateX: '-50%',
+                translateY: '-50%',
+              }}
+              initial={{ opacity: 0, scale: isOverLink ? 0.15 : 0.6 }}
+              animate={{
+                opacity: 1,
+                scale: isOverLink ? 0.15 : 1,
+              }}
+              exit={{ opacity: 0, scale: isOverLink ? 0.15 : 0.6 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {cursorArea === 'left' && (
+                <img src="/prev.svg" alt="" width={90} height={90} className="w-20 h-20" />
+              )}
+              {cursorArea === 'right' && (
+                <img src="/next.svg" alt="" width={90} height={90} className="w-20 h-20" />
+              )}
+              {cursorArea === 'center' && (
+                <img src="/close.svg" alt="" width={90} height={90} className="w-20 h-20" />
+              )}
+            </motion.div>
+          )}
+
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              className="max-w-8xl mx-auto px-8 py-10 md:py-12"
+              initial={{
+                opacity: 0,
+                x: isNavigating ? (navigationDirection === 'next' ? 100 : -100) : 0,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              exit={{
+                opacity: 0,
+                x: isNavigating ? (navigationDirection === 'next' ? -100 : 100) : 0,
+              }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="max-w-8xl mx-auto px-4 md:px-8 pt-20 md:pt-12 pb-10 md:pb-12"
             >
               <div className="grid md:grid-cols-2 gap-10 md:gap-20">
                 {/* Left side - Images */}
                 <div className="space-y-8">
-                  {imageUrl && (
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={`image-${currentIndex}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                        className="relative w-full aspect-[3/2]"
-                      >
+                  {imageUrl &&
+                    (shouldAnimateText ? (
+                      <AnimatePresence mode="wait">
+                        {isOpen && (
+                          <motion.div
+                            key={`image-${isOpen}`}
+                            initial={{ opacity: 0, rotate: 5 }}
+                            animate={{ opacity: 1, rotate: 0 }}
+                            exit={{ opacity: 0, rotate: 5 }}
+                            transition={{
+                              duration: 0.8,
+                              ease: [0.4, 0, 0.2, 1],
+                              delay: 0.2,
+                            }}
+                            className="relative w-full aspect-[3/2]"
+                          >
+                            <Image
+                              src={imageUrl}
+                              alt={currentSpeaker.names || 'Speaker'}
+                              fill
+                              className="object-top object-cover"
+                              sizes="(max-width: 768px) 100vw, 50vw"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    ) : (
+                      <div className="relative w-full aspect-[3/2]">
                         <Image
+                          key={currentIndex}
                           src={imageUrl}
                           alt={currentSpeaker.names || 'Speaker'}
                           fill
-                          className="object-top object-cover mix-blend-multiply"
+                          className="object-top object-cover"
                           sizes="(max-width: 768px) 100vw, 50vw"
                         />
-                      </motion.div>
+                      </div>
+                    ))}
+                  {shouldAnimateText ? (
+                    <AnimatePresence mode="wait">
+                      {isOpen && (
+                        <motion.div
+                          key={`names-${isOpen}`}
+                          initial={{ opacity: 0, x: -50 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -50 }}
+                          transition={{
+                            duration: 0.6,
+                            ease: [0.4, 0, 0.2, 1],
+                            delay: 0.3,
+                          }}
+                          className="space-y-0"
+                        >
+                          {currentSpeaker.studioName && (
+                            <p
+                              className={cn(
+                                textVariants({
+                                  size: '4xl',
+                                  font: 'oldman',
+                                  weight: 'bold',
+                                  transform: 'uppercase',
+                                  leading: 'none',
+                                }),
+                              )}
+                            >
+                              {currentSpeaker.studioName}
+                            </p>
+                          )}
+                          <p
+                            className={cn(
+                              textVariants({
+                                size: '3xl',
+                                font: 'oldman',
+                                weight: 'normal',
+                                leading: 'none',
+                              }),
+                            )}
+                          >
+                            {currentSpeaker.names}
+                          </p>
+                        </motion.div>
+                      )}
                     </AnimatePresence>
-                  )}
-                  <div className="space-y-0">
-                    {currentSpeaker.studioName && (
-                      <p
-                        className={cn(
-                          textVariants({
-                            size: '4xl',
-                            font: 'oldman',
-                            weight: 'bold',
-                            transform: 'uppercase',
-                            leading: 'none',
-                          }),
+                  ) : (
+                    isOpen && (
+                      <div className="space-y-0">
+                        {currentSpeaker.studioName && (
+                          <p
+                            className={cn(
+                              textVariants({
+                                size: '4xl',
+                                font: 'oldman',
+                                weight: 'bold',
+                                transform: 'uppercase',
+                                leading: 'none',
+                              }),
+                            )}
+                          >
+                            {currentSpeaker.studioName}
+                          </p>
                         )}
-                      >
-                        {currentSpeaker.studioName}
-                      </p>
-                    )}
-                    <p
-                      className={cn(
-                        textVariants({
-                          size: '3xl',
-                          font: 'oldman',
-                          weight: 'normal',
-                        }),
-                      )}
-                    >
-                      {currentSpeaker.names}
-                    </p>
-                  </div>
-                  {currentSpeaker.socials && (
-                    <div
-                      className={cn(
-                        textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-                      )}
-                    >
-                      {renderRichText(currentSpeaker.socials)}
-                    </div>
+                        <p
+                          className={cn(
+                            textVariants({
+                              size: '3xl',
+                              font: 'oldman',
+                              weight: 'normal',
+                            }),
+                          )}
+                        >
+                          {currentSpeaker.names}
+                        </p>
+                      </div>
+                    )
                   )}
+                  {currentSpeaker.socials &&
+                    (shouldAnimateText ? (
+                      <AnimatePresence mode="wait">
+                        {isOpen && (
+                          <motion.div
+                            key={`socials-${isOpen}`}
+                            initial={{ opacity: 0, x: -50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{
+                              duration: 0.6,
+                              ease: [0.4, 0, 0.2, 1],
+                              delay: 0.4,
+                            }}
+                            className={cn(
+                              textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                            )}
+                          >
+                            {renderRichText(currentSpeaker.socials)}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    ) : (
+                      isOpen && (
+                        <div
+                          className={cn(
+                            textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                          )}
+                        >
+                          {renderRichText(currentSpeaker.socials)}
+                        </div>
+                      )
+                    ))}
                 </div>
 
                 {/* Right side - Bio */}
-                <div
-                  className={cn(
-                    textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-                    'whitespace-pre-line',
-                  )}
-                >
-                  {currentSpeaker.bio ? (
-                    renderRichText(currentSpeaker.bio)
-                  ) : (
-                    <p>No bio available.</p>
-                  )}
-                </div>
+                {shouldAnimateText ? (
+                  <AnimatePresence mode="wait">
+                    {isOpen && (
+                      <motion.div
+                        key={`bio-${isOpen}`}
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 50 }}
+                        transition={{
+                          duration: 0.6,
+                          ease: [0.4, 0, 0.2, 1],
+                          delay: 0.35,
+                        }}
+                        className={cn(
+                          textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                          'whitespace-pre-line',
+                        )}
+                      >
+                        {currentSpeaker.bio ? (
+                          renderRichText(currentSpeaker.bio)
+                        ) : (
+                          <p>No bio available.</p>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                ) : (
+                  isOpen && (
+                    <div
+                      className={cn(
+                        textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                        'whitespace-pre-line',
+                      )}
+                    >
+                      {currentSpeaker.bio ? (
+                        renderRichText(currentSpeaker.bio)
+                      ) : (
+                        <p>No bio available.</p>
+                      )}
+                    </div>
+                  )
+                )}
               </div>
             </motion.div>
           </AnimatePresence>

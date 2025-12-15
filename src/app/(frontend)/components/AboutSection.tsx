@@ -136,7 +136,7 @@ export function AboutSection({ paragraphs }: AboutSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ['start 0.8', 'end 0.2'],
+    offset: ['start 0.8', 'end 0.5'],
   })
 
   // Create smooth spring animation
@@ -148,11 +148,17 @@ export function AboutSection({ paragraphs }: AboutSectionProps) {
 
   if (!paragraphs || paragraphs.length === 0) return null
 
+  // Calculate extra height for last paragraph to ensure animation completes
+  // Last paragraph words finish at ~0.65 of paragraph progress, so we need extra space
+  const extraHeightForLastParagraph = 50 // Additional vh for last paragraph
+  const baseHeight = paragraphs.length * 150
+  const totalHeight = baseHeight + extraHeightForLastParagraph
+
   return (
     <section
       ref={containerRef}
-      className="max-w-5xl mx-auto px-5 mb-24 text-center relative"
-      style={{ minHeight: `${paragraphs.length * 150}vh` }}
+      className="max-w-5xl mx-auto px-2.5 md:px-5 mb-24 text-center relative"
+      style={{ minHeight: `${totalHeight}vh` }}
     >
       <div className="sticky top-0 flex items-center justify-center" style={{ height: '100vh' }}>
         {paragraphs.map((paragraph, index) => {
@@ -174,7 +180,9 @@ export function AboutSection({ paragraphs }: AboutSectionProps) {
             paragraphEnd = (index + 1) / totalParagraphs
           }
 
-          const actualEnd = isLast ? 1 : paragraphEnd
+          // Last paragraph gets extended to use more of the scroll range
+          // This ensures word animation completes before section ends
+          const actualEnd = isLast ? 0.95 : paragraphEnd
 
           // Calculate progress within this paragraph's range (0 to 1)
           const paragraphProgress = useTransform(smoothProgress, (progress: number) => {

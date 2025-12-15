@@ -91,7 +91,10 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   return (
-    <section id="next-event" className="border-t border-black max-w-8xl mx-auto px-5 mb-10">
+    <section
+      id="next-event"
+      className="border-t border-black max-w-8xl mx-auto px-2.5 md:px-5 mb-10 bg-yellow"
+    >
       <div className="text-center mx-auto my-10 md:my-10">
         <Image
           src="/NEXT EVENT.svg"
@@ -176,7 +179,7 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
         </div>
       </div>
       {nextEvent.description && (
-        <div className="my-14 text-center">
+        <div className="my-10 md:my-14 text-center">
           <button
             onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
             className={cn(
@@ -198,7 +201,7 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
                 <div
                   className={cn(
                     textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
-                    'max-w-4xl mx-auto text-center mt-10',
+                    'max-w-4xl mx-auto text-left md:text-center px-2.5 md:px-0 mt-5 md:mt-10',
                   )}
                 >
                   {renderRichText(nextEvent.description)}
@@ -232,7 +235,7 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
           >
             WITH THANKS TO OUR SPONSORS
           </div>
-          <div className="flex flex-wrap justify-center gap-10">
+          <div className="flex flex-wrap justify-center gap-10 mb-10 md:mb-0">
             {nextEvent.sponsors.map((sponsor) => {
               const imageData =
                 typeof sponsor.image === 'object' && sponsor.image !== null ? sponsor.image : null
@@ -242,7 +245,7 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
               return (
                 <div
                   key={sponsor.id || Math.random()}
-                  className="w-full max-w-xs w-[325px] h-[325px]"
+                  className="w-full max-w-xs w-[325px] h-auto md:h-[325px]"
                 >
                   <Image
                     src={imageUrl}

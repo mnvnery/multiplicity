@@ -41,7 +41,7 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
       AutoScroll({
         speed: 1,
         stopOnInteraction: true,
-        stopOnMouseEnter: true,
+        stopOnMouseEnter: false,
         playOnInit: true,
       }),
     ],
@@ -128,7 +128,7 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
           return (
             <div
               key={`${event.id}-${index}`}
-              className="pl-4 overflow-hidden flex flex-col flex-[0_0_auto] shrink-0 basis-[400px]"
+              className="pl-4 overflow-hidden flex flex-col flex-[0_0_auto] shrink-0 basis-[300px] md:basis-[400px]"
             >
               {/* Image section at bottom */}
               {firstImage?.image &&

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { textVariants, cn } from '../lib/variants'
 import SpeakerModal from './SpeakerModal'
 import { SpeakerBioOverlay } from './SpeakerBioOverlay'
+import Image from 'next/image'
 
 interface Speaker {
   studioName?: string | null
@@ -62,7 +63,7 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
           return (
             <div
               key={idx}
-              className="pl-5 py-6 relative z-10"
+              className="md:pl-5 py-6 relative z-10"
               style={{
                 cursor: hasImage ? 'none' : 'pointer',
               }}
@@ -79,6 +80,16 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
                 handleSpeakerClick(e, idx)
               }}
             >
+              {imageData?.url && (
+                <div className="md:hidden relative w-full aspect-[3/2] mb-2">
+                  <Image
+                    src={imageData.url}
+                    alt={imageData.alt || speaker.names}
+                    fill
+                    className="object-top object-cover"
+                  />
+                </div>
+              )}
               {speaker.studioName && (
                 <p
                   className={cn(

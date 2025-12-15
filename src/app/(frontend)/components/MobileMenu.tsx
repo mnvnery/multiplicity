@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { Power4 } from 'gsap'
 import { textVariants, buttonVariants, cn } from '../lib/variants'
 import Image from 'next/image'
 interface MobileMenuProps {
@@ -66,10 +67,10 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
         {isOpen && (
           <motion.div
             className="fixed inset-0 z-50 bg-black md:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: '-100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '-100%' }}
+            transition={{ duration: 0.8, ease: Power4.easeInOut }}
           >
             {/* Navigation Links with Stagger Animation */}
             <motion.div
@@ -78,7 +79,7 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
               animate="open"
               variants={{
                 open: {
-                  transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+                  transition: { staggerChildren: 0.12, delayChildren: 0.15 },
                 },
                 closed: {
                   transition: { staggerChildren: 0.05, staggerDirection: -1 },
@@ -98,7 +99,7 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
                     closed: { opacity: 0, y: 20 },
                     open: { opacity: 1, y: 0 },
                   }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  transition={{ duration: 0.8, ease: Power4.easeInOut }}
                 >
                   {item.label}
                 </motion.a>
@@ -119,7 +120,7 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
                     closed: { opacity: 0, y: 20 },
                     open: { opacity: 1, y: 0 },
                   }}
-                  transition={{ duration: 0.4, ease: 'easeOut', delay: 0.3 }}
+                  transition={{ duration: 0.8, ease: Power4.easeInOut }}
                 >
                   BUY TICKETS
                 </motion.a>
@@ -131,7 +132,11 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
               className="absolute bottom-5 left-5 right-5 flex justify-between items-end"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.4, ease: 'easeOut' }}
+              transition={{
+                delay: 0.15 + (navItems.length + (ticketUrl ? 1 : 0)) * 0.12,
+                duration: 0.8,
+                ease: Power4.easeInOut,
+              }}
             >
               <Image
                 src="/foilco-multiplicity-yellow.svg"

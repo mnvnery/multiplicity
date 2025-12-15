@@ -54,7 +54,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-yellow text-black">
       {/* Header */}
-      <header className="flex justify-between items-center px-5 py-5">
+      <header className="sticky top-0 z-[10000] bg-yellow md:relative flex justify-between items-center px-2.5 md:px-5 py-5">
         {/* Social Icons - Mobile Left */}
         <div className="flex gap-4 md:hidden">
           {siteSettings?.socialLinks?.instagram && (
@@ -86,15 +86,15 @@ export default async function HomePage() {
             'hidden md:flex items-center gap-2.5',
           )}
         >
-          <a href="#next-event" className="hover:opacity-70 transition-opacity">
+          <a href="#next-event" className="hover:underline">
             NEXT EVENT
           </a>
           <span>/</span>
-          <a href="#past-events" className="hover:opacity-70 transition-opacity">
+          <a href="#past-events" className="hover:underline">
             PAST EVENTS
           </a>
           <span>/</span>
-          <a href="#contact" className="hover:opacity-70 transition-opacity">
+          <a href="#contact" className="hover:underline">
             CONTACT
           </a>
         </nav>
@@ -150,7 +150,7 @@ export default async function HomePage() {
       </header>
 
       {/* Logo */}
-      <div className="max-w-8xl mx-auto px-5 mb-24">
+      <div className="max-w-8xl mx-auto px-2.5 md:px-5 mb-14 md:mb-24">
         <div className="text-center mx-auto mt-10 md:mt-16">
           <Image
             src="/Multiplicity_Logo.svg"
@@ -229,11 +229,10 @@ export default async function HomePage() {
 
       {/* Next Event Section */}
       {nextEvent && <NextEventSection nextEvent={nextEvent} />}
-
       {/* Past Events Section */}
       {pastEvents.docs.length > 0 && (
-        <section id="past-events" className="bg-pink pb-24">
-          <div className="text-center max-w-8xl mx-auto px-5 py-8 md:py-8">
+        <section id="past-events" className="bg-pink pb-6 md:pb-24">
+          <div className="text-center max-w-8xl mx-auto px-2.5 md:px-5 pt-5 pb-8 md:py-8">
             <Image
               src="/PAST EVENTS.svg"
               alt="Past Events"
@@ -245,7 +244,6 @@ export default async function HomePage() {
           <PastEventsCarousel events={[...pastEvents.docs, ...pastEvents.docs]} />
         </section>
       )}
-
       {/* Footer */}
       <Footer
         socialLinks={

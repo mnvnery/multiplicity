@@ -32,6 +32,7 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
   )
 
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return
@@ -115,73 +116,92 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
     }
   }, [emblaApi, images.length, scrollToWithDuration])
 
+  // Trigger initial animation after mount
+  useEffect(() => {
+    // Small delay to ensure the component is fully rendered
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false)
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   if (!images || images.length === 0) return null
 
   return (
-    <div className="relative rounded-xl overflow-hidden" ref={containerRef}>
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex touch-pan-y cursor-grab active:cursor-grabbing">
-          {images.map((heroImage, index) => {
-            // Handle case where image might be an ID or a full Media object
-            const imageData =
-              typeof heroImage.image === 'object' && heroImage.image !== null
-                ? heroImage.image
-                : null
+    <div
+      className="transition-all duration-[1200ms] ease-out"
+      style={{
+        width: isInitialLoad ? '100vw' : '100%',
+        marginLeft: isInitialLoad ? 'calc(-50vw + 50%)' : '0',
+        marginRight: isInitialLoad ? 'calc(-50vw + 50%)' : '0',
+      }}
+    >
+      <div className="relative rounded-xl overflow-hidden" ref={containerRef}>
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex touch-pan-y cursor-grab active:cursor-grabbing">
+            {images.map((heroImage, index) => {
+              // Handle case where image might be an ID or a full Media object
+              const imageData =
+                typeof heroImage.image === 'object' && heroImage.image !== null
+                  ? heroImage.image
+                  : null
 
-            const imageUrl = imageData?.url || ''
-            const imageAlt = imageData?.alt || 'Hero image'
+              const imageUrl = imageData?.url || ''
+              const imageAlt = imageData?.alt || 'Hero image'
 
-            if (!imageUrl) return null
+              if (!imageUrl) return null
 
-            const isSelected = selectedIndex === index
+              const isSelected = selectedIndex === index
 
-            // Calculate distance accounting for infinite loop
-            let distance = Math.abs(selectedIndex - index)
-            const wrappedDistance = images.length - distance
-            distance = Math.min(distance, wrappedDistance)
+              // Calculate distance accounting for infinite loop
+              let distance = Math.abs(selectedIndex - index)
+              const wrappedDistance = images.length - distance
+              distance = Math.min(distance, wrappedDistance)
 
-            // Calculate scale: center (selected) = 1.0, immediate neighbors = 0.75, others = 0.65
-            let scale = 0.65
-            let opacity = 0.6
-            if (isSelected) {
-              scale = 1.0
-              opacity = 1.0
-            } else if (distance === 1) {
-              // Immediate neighbors
-              scale = 0.9
-              opacity = 0.8
-            }
+              // Calculate scale: center (selected) = 1.0, immediate neighbors = 0.75, others = 0.65
+              let scale = 0.65
+              let opacity = 0.6
+              if (isSelected) {
+                scale = 1.0
+                opacity = 1.0
+              } else if (distance === 1) {
+                // Immediate neighbors
+                scale = 0.9
+                opacity = 0.8
+              }
 
-            return (
-              <div
-                key={heroImage.id || index}
-                className="flex-[0_0_66.666%] min-w-0 pl-4"
-                style={
-                  {
-                    // Show 1/3 of side images, so each slide takes 66.666% width
-                    // This allows 33.333% (1/3) of each side image to peek through
-                  }
-                }
-              >
+              return (
                 <div
-                  className="relative w-full aspect-[16/9] transition-all duration-300 ease-out"
-                  style={{
-                    transform: `scaleY(${scale})`,
-                    opacity: opacity,
-                  }}
+                  key={heroImage.id || index}
+                  className="flex-[0_0_85%] md:flex-[0_0_66.666%] min-w-0 px-1 md:px-2"
+                  style={
+                    {
+                      // Show 1/3 of side images, so each slide takes 66.666% width
+                      // This allows 33.333% (1/3) of each side image to peek through
+                    }
+                  }
                 >
-                  <Image
-                    src={imageUrl}
-                    alt={imageAlt}
-                    width={1200}
-                    height={600}
-                    className="w-full h-full object-cover rounded-lg"
-                    priority={index === 0}
-                  />
+                  <div
+                    className="relative w-full aspect-[16/9] transition-all duration-300 ease-out"
+                    style={{
+                      transform: `scaleY(${scale})`,
+                      opacity: opacity,
+                    }}
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt={imageAlt}
+                      width={1200}
+                      height={600}
+                      className="w-full h-full object-cover rounded-lg"
+                      priority={index === 0}
+                    />
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ export const textVariants = cva('', {
       base: 'fl-text-base/lg',
       lg: 'fl-text-lg/xl',
       xl: 'fl-text-base/2xl',
-      '2xl': 'fl-text-2xl/4xl',
+      '2xl': 'text-4xl',
       '3xl': 'fl-text-3xl/5xl',
       '4xl': 'fl-text-4xl/6xl',
       '5xl': 'fl-text-5xl/7xl',
@@ -62,7 +62,7 @@ export type TextVariants = VariantProps<typeof textVariants>
 
 // Button variants
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
@@ -79,7 +79,7 @@ export const buttonVariants = cva(
         lg: 'fl-px-5/8 fl-py-6/4 fl-text-3xl/2xl',
         xl: 'fl-px-6/10 fl-py-3/4 fl-text-xl/3xl',
         '2xl': 'fl-px-8/12 fl-py-4/6 fl-text-2xl/4xl',
-        '3xl': 'fl-px-10/14 fl-py-4/6 fl-text-3xl/5xl',
+        '3xl': 'fl-px-10/14 fl-py-4/6 fl-text-6xl/5xl',
       },
       font: {
         ufficio: 'font-ufficio',

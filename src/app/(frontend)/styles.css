@@ -47,4 +47,20 @@ font-family
 : sans-serif;
     /* color: #333; */
   }
+
+  /* Add scroll margin for anchor links to account for sticky header */
+  #next-event,
+  #past-events,
+  #contact {
+    scroll-margin-top: 60px;
+  }
+
+  @media (min-width: 768px) {
+    /* No offset needed on desktop where header is relative */
+    #next-event,
+    #past-events,
+    #contact {
+      scroll-margin-top: 0;
+    }
+  }
 }

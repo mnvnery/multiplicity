@@ -17,7 +17,7 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
   return (
     <>
       {/* Mailing List Section */}
-      <section className="bg-black text-white px-5 py-32">
+      <section className="bg-black text-white px-3 md:px-5 py-16 md:py-32">
         <div className="max-w-4xl mx-auto text-center">
           <h2
             className={cn(
@@ -70,8 +70,8 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="bg-black text-white px-5">
-        <div className="max-w-8xl mx-auto border-t-2 py-16 border-white grid grid-cols-1 md:grid-cols-[1.5fr_1fr_2fr] gap-12">
+      <footer id="contact" className="bg-black text-white px-3 md:px-5">
+        <div className="max-w-8xl mx-auto border-t-2 py-8 md:py-16 border-white grid grid-cols-1 md:grid-cols-[1.5fr_1fr_2fr] gap-12">
           {/* Left Column - Company Information */}
           <div
             className={cn(
@@ -95,7 +95,7 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
                       alt="FoilcoMultiplicity Logo"
                       width={76}
                       height={148}
-                      className="min-h-[23vh] w-auto object-contain"
+                      className="min-h-[20.5vh] md:min-h-[23vh] w-auto object-contain"
                     />
                   </a>
                 </div>

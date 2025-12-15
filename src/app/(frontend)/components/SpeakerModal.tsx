@@ -106,7 +106,7 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
         variants={scaleAnimation}
         initial="initial"
         animate={shouldShow ? 'enter' : 'closed'}
-        className="fixed top-0 left-0 w-[300px] h-[200px] pointer-events-none z-[9998] overflow-hidden"
+        className="hidden md:block fixed top-0 left-0 w-[300px] h-[200px] pointer-events-none z-[9998] overflow-hidden"
         style={{
           transformOrigin: 'center center',
           visibility: shouldShow ? 'visible' : 'hidden',
