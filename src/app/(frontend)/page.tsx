@@ -8,6 +8,7 @@ import { MobileMenu } from './components/MobileMenu'
 import { Footer } from './components/Footer'
 import { PastEventsCarousel } from './components/PastEventsCarousel'
 import { NextEventSection } from './components/NextEventSection'
+import { AboutSection } from './components/AboutSection'
 import { AiFillInstagram, AiFillLinkedin } from 'react-icons/ai'
 import { textVariants, buttonVariants, cn } from './lib/variants'
 
@@ -170,26 +171,28 @@ export default async function HomePage() {
             >
               Next Event:
               <br className="md:hidden" />
-              {nextEvent?.title}&nbsp;
-              {(() => {
-                const date = new Date(nextEvent.date)
-                const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
-                const day = date.getDate()
-                const year = date.getFullYear()
+              <a href={`#next-event`} className="hover:underline md:ml-2">
+                {nextEvent?.title}&nbsp;
+                {(() => {
+                  const date = new Date(nextEvent.date)
+                  const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
+                  const day = date.getDate()
+                  const year = date.getFullYear()
 
-                // Add ordinal suffix to day
-                const getOrdinal = (n: number) => {
-                  const s = ['TH', 'ST', 'ND', 'RD']
-                  const v = n % 100
-                  return n + (s[(v - 20) % 10] || s[v] || s[0])
-                }
+                  // Add ordinal suffix to day
+                  const getOrdinal = (n: number) => {
+                    const s = ['TH', 'ST', 'ND', 'RD']
+                    const v = n % 100
+                    return n + (s[(v - 20) % 10] || s[v] || s[0])
+                  }
 
-                return (
-                  <>
-                    {month} {getOrdinal(day)} {year}
-                  </>
-                )
-              })()}
+                  return (
+                    <>
+                      {month} {getOrdinal(day)} {year}
+                    </>
+                  )
+                })()}
+              </a>
             </p>
           </div>
           <div className="text-center">
@@ -221,24 +224,7 @@ export default async function HomePage() {
 
       {/* About Section */}
       {siteSettings?.aboutParagraphs && siteSettings.aboutParagraphs.length > 0 && (
-        <section
-          className={cn(
-            textVariants({
-              size: '3xl',
-              font: 'oldman',
-              weight: 'normal',
-              leading: 'tight',
-            }),
-            'max-w-5xl mx-auto px-5 mb-24 text-center',
-            'text-center',
-          )}
-        >
-          <div className="flex flex-col gap-20">
-            {siteSettings.aboutParagraphs.map((paragraph: any, index: number) => (
-              <p key={index}>{paragraph.text}</p>
-            ))}
-          </div>
-        </section>
+        <AboutSection paragraphs={siteSettings.aboutParagraphs} />
       )}
 
       {/* Next Event Section */}

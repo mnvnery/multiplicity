@@ -138,6 +138,14 @@ export function SpeakerBioOverlay({
         setCursorArea(null)
         return
       }
+
+      // Check if hovering over a link - if so, use default cursor
+      const target = e.target as HTMLElement
+      if (target.closest('a')) {
+        setCursorArea(null)
+        return
+      }
+
       const rect = overlayRef.current.getBoundingClientRect()
       const x = e.clientX - rect.left
       const width = rect.width
@@ -256,7 +264,7 @@ export function SpeakerBioOverlay({
                           src={imageUrl}
                           alt={currentSpeaker.names || 'Speaker'}
                           fill
-                          className="object-cover mix-blend-multiply"
+                          className="object-top object-cover mix-blend-multiply"
                           sizes="(max-width: 768px) 100vw, 50vw"
                         />
                       </motion.div>

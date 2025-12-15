@@ -91,7 +91,7 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   return (
-    <section id="next-event" className="border-t border-black max-w-8xl mx-auto px-5 mb-24">
+    <section id="next-event" className="border-t border-black max-w-8xl mx-auto px-5 mb-10">
       <div className="text-center mx-auto my-10 md:my-10">
         <Image
           src="/NEXT EVENT.svg"
