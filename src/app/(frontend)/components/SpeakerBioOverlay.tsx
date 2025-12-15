@@ -120,16 +120,9 @@ export function SpeakerBioOverlay({
   const [cursorArea, setCursorArea] = useState<'left' | 'center' | 'right' | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
-  console.log('SpeakerBioOverlay render', { isOpen, currentIndex, speakersLength: speakers.length })
-
   const currentSpeaker = speakers[currentIndex]
-  if (!currentSpeaker) {
-    console.log('No current speaker at index', currentIndex)
-    return null
-  }
-
   const imageData =
-    typeof currentSpeaker.image === 'object' && currentSpeaker.image !== null
+    currentSpeaker && typeof currentSpeaker.image === 'object' && currentSpeaker.image !== null
       ? currentSpeaker.image
       : null
   const imageUrl = imageData?.url
@@ -203,6 +196,11 @@ export function SpeakerBioOverlay({
       default:
         return 'default'
     }
+  }
+
+  // Early return check after all hooks
+  if (!currentSpeaker) {
+    return null
   }
 
   return (
