@@ -132,7 +132,7 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
                     src={imageUrl}
                     alt={speaker.names || 'Speaker'}
                     fill
-                    className="object-cover"
+                    className="object-cover mix-blend-multiply"
                     sizes="400px"
                   />
                 </div>

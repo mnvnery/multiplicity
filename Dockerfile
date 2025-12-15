@@ -58,9 +58,10 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Create directory for SQLite database
+# Create directory for SQLite database (will be overridden by mounted volume)
 RUN mkdir -p /app/data
 RUN chown nextjs:nodejs /app/data
+RUN chmod 755 /app/data
 
 # Copy seed directory (includes seed database if it exists)
 COPY --from=builder --chown=nextjs:nodejs /app/seed ./seed
@@ -86,5 +87,5 @@ ENV NODE_PATH=/app/node_modules
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
 # Copy seed DB to persistent volume on first boot if it doesn't exist
-# Note: chmod may fail on mounted volumes, but the copy should still work
-CMD sh -c 'mkdir -p /app/data && if [ ! -f /app/data/multiplicity.db ] && [ -f /app/seed/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db; fi; HOSTNAME="0.0.0.0" node server.js'
+# Ensure directory exists, is writable, and database file is accessible
+CMD sh -c 'mkdir -p /app/data && if [ -f /app/seed/multiplicity.db ] && [ ! -f /app/data/multiplicity.db ]; then cp /app/seed/multiplicity.db /app/data/multiplicity.db && echo "✓ Database seeded"; fi && if [ ! -w /app/data ]; then echo "⚠ Warning: /app/data is not writable"; fi && echo "Database path: /app/data/multiplicity.db" && ls -la /app/data/ 2>&1 && HOSTNAME="0.0.0.0" node server.js'
