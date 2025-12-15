@@ -42,6 +42,11 @@ next-env.d.ts
 
 /media
 
+# SQLite databases (but allow seed database)
+*.db
+!seed/multiplicity.db
+multiplicity.db
+
 # Playwright
 node_modules/
 /test-results/
