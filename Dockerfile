@@ -83,7 +83,11 @@ RUN \
   elif [ -f package-lock.json ]; then npm ci --only=production; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile --prod; \
   else echo "Lockfile not found." && exit 1; \
-  fi
+  fi && \
+  # Remove build tools after installation to reduce image size
+  apk del python3 make g++ && \
+  # Clean up package manager cache
+  rm -rf /tmp/* /var/cache/apk/* /root/.npm /root/.cache
 
 USER nextjs
 
