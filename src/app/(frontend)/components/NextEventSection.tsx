@@ -25,11 +25,14 @@ interface NextEvent {
       | null
   }> | null
   sponsors?: Array<{
-    image: {
-      url: string
-      width: number
-      height: number
-    }
+    image:
+      | number
+      | {
+          url?: string | null
+          alt?: string | null
+        }
+      | null
+    id?: string | null
   }> | null
   description?: any // richText from Lexical
   ticketUrl?: string | null
@@ -230,17 +233,27 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
             WITH THANKS TO OUR SPONSORS
           </div>
           <div className="flex flex-wrap justify-center gap-10">
-            {nextEvent.sponsors.map((sponsor: any) => (
-              <div key={sponsor.id} className="w-full max-w-xs w-[325px] h-[325px]">
-                <Image
-                  src={sponsor.image.url}
-                  alt={sponsor.name}
-                  width={sponsor.image.width}
-                  height={sponsor.image.height}
-                  className="w-full h-full object-contain p-10"
-                />
-              </div>
-            ))}
+            {nextEvent.sponsors.map((sponsor) => {
+              const imageData =
+                typeof sponsor.image === 'object' && sponsor.image !== null ? sponsor.image : null
+              const imageUrl = imageData?.url
+              if (!imageUrl) return null
+
+              return (
+                <div
+                  key={sponsor.id || Math.random()}
+                  className="w-full max-w-xs w-[325px] h-[325px]"
+                >
+                  <Image
+                    src={imageUrl}
+                    alt={imageData?.alt || 'Sponsor'}
+                    width={325}
+                    height={325}
+                    className="w-full h-full object-contain p-10"
+                  />
+                </div>
+              )
+            })}
           </div>
         </>
       )}
