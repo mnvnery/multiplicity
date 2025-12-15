@@ -43,6 +43,9 @@ WORKDIR /app
 
 ENV NODE_ENV production
 
+# Install build tools for native modules (libsql needs these)
+RUN apk add --no-cache libc6-compat python3 make g++
+
 # Install pnpm for installing native deps if needed
 RUN corepack enable pnpm
 # Uncomment the following line in case you want to disable telemetry during runtime.
@@ -71,11 +74,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/seed ./seed
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy entire node_modules to ensure native dependencies (libsql) are available
-# Standalone output doesn't include native deps, so we need the full node_modules
-# This overwrites the standalone's node_modules with our complete one
-RUN rm -rf ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+# Install production dependencies to ensure native modules (libsql) are available
+# This is more space-efficient than copying the entire node_modules
+# We need to install deps here because standalone output doesn't include native deps
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml* /app/yarn.lock* /app/package-lock.json* ./
+RUN \
+  if [ -f yarn.lock ]; then yarn install --frozen-lockfile --production; \
+  elif [ -f package-lock.json ]; then npm ci --only=production; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile --prod; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
 
 USER nextjs
 
