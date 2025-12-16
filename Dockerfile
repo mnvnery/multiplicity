@@ -22,20 +22,36 @@ RUN \
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Copy only necessary files first
+COPY package.json pnpm-lock.yaml* yarn.lock* package-lock.json* ./
+COPY next.config.mjs ./
+COPY tsconfig.json ./
+COPY postcss.config.mjs ./
+COPY tailwindcss.config.mjs* ./
+
+# Copy source files
+COPY src ./src
+COPY public ./public
+COPY seed ./seed
+
+# Instead of copying entire node_modules, use a bind mount approach
+# Copy from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
   elif [ -f package-lock.json ]; then npm run build; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
   else echo "Lockfile not found." && exit 1; \
-  fi
+  fi && \
+  # Clean up unnecessary files after build to save space
+  rm -rf node_modules/.cache
 
 # Production image, copy all the files and run next
 FROM base AS runner
