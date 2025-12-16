@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
 interface AnimatedTextProps {
   children: string
   className?: string
-  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span'
+  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div'
   animation?: 'fade' | 'slide-up' | 'slide-down' | 'chars' | 'words' | 'lines' | 'mask'
   stagger?: number
   duration?: number
