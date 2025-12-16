@@ -60,7 +60,7 @@ export default async function HomePage() {
     <div className="min-h-screen bg-yellow text-black">
       <CustomCursor />
       {/* Header */}
-      <AnimatedHeader className="sticky top-0 z-[10000] bg-yellow md:bg-transparent md:relative flex justify-between items-center px-2.5 md:px-5 py-5">
+      <AnimatedHeader className="sticky top-0 z-[100] bg-yellow md:bg-transparent md:relative flex justify-between items-center px-2.5 md:px-5 py-5">
         {/* Social Icons - Mobile Left */}
         <div className="flex gap-4 md:hidden">
           {siteSettings?.socialLinks?.instagram && (

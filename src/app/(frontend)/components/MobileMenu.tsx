@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { gsap, Power4 } from 'gsap'
+import { createPortal } from 'react-dom'
+import { gsap } from 'gsap'
 import { textVariants, buttonVariants, cn } from '../lib/variants'
 import Image from 'next/image'
 interface MobileMenuProps {
@@ -21,16 +21,40 @@ const navItems = [
 
 export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [shouldRender, setShouldRender] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const navItemsRef = useRef<HTMLDivElement>(null)
+  const brandingRef = useRef<HTMLDivElement>(null)
 
-  const toggleMenu = () => setIsOpen(!isOpen)
-  const closeMenu = () => setIsOpen(false)
+  const toggleMenu = () => {
+    if (isOpen) {
+      // Start closing
+      setIsOpen(false)
+    } else {
+      // Start opening
+      setShouldRender(true)
+      setIsOpen(true)
+    }
+  }
 
-  // GSAP mask reveal animation
+  const closeMenu = () => {
+    setIsOpen(false)
+  }
+
+  // Track client-side mounting for portal
   useEffect(() => {
-    if (!menuRef.current) return
+    setIsMounted(true)
+  }, [])
+
+  // GSAP mask reveal and content stagger animations
+  useEffect(() => {
+    if (!menuRef.current || !navItemsRef.current) return
 
     const menu = menuRef.current
+    const navContainer = navItemsRef.current
+    const navLinks = navContainer.querySelectorAll('a')
+    const branding = brandingRef.current
 
     if (isOpen) {
       // Opening animation - mask reveal from center
@@ -44,16 +68,60 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
         duration: 0.8,
         ease: 'power3.inOut',
       })
-    } else if (menu.style.clipPath !== 'circle(0% at 100% 0%)') {
-      // Closing animation - mask collapse to top right with slight delay for content to fade
+
+      // Stagger animation for nav items - soft and subtle
+      gsap.set(navLinks, {
+        opacity: 0,
+        y: 20,
+      })
+
+      gsap.to(navLinks, {
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+        stagger: 0.08, // Subtle stagger delay between items
+        ease: 'power2.out',
+        delay: 0.3, // Start after mask begins revealing
+      })
+
+      // Branding animation
+      if (branding) {
+        gsap.set(branding, {
+          opacity: 0,
+          y: 20,
+        })
+
+        gsap.to(branding, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power2.out',
+          delay: 0.5, // Slightly after nav items start
+        })
+      }
+    } else if (shouldRender) {
+      // Fade out content first
+      gsap.to([navLinks, branding], {
+        opacity: 0,
+        y: -10,
+        duration: 0.3,
+        stagger: -0.03, // Reverse stagger for closing
+        ease: 'power2.in',
+      })
+
+      // Then close the mask
       gsap.to(menu, {
         clipPath: 'circle(0% at 100% 0%)',
         duration: 0.7,
         ease: 'power3.inOut',
-        delay: 0.15,
+        delay: 0.2, // Wait for content to fade
+        onComplete: () => {
+          // Remove from DOM after animation completes
+          setShouldRender(false)
+        },
       })
     }
-  }, [isOpen])
+  }, [isOpen, shouldRender])
 
   return (
     <>
@@ -61,9 +129,10 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
       <button
         onClick={toggleMenu}
         className={cn(
-          'group md:hidden hover:opacity-70 transition-opacity',
-          isOpen ? 'fixed top-5 right-5 z-[60] text-yellow' : 'relative text-black',
+          'group md:hidden hover:opacity-70 transition-all duration-300 relative z-[1001]',
+          isOpen ? 'text-yellow' : 'text-black',
         )}
+        data-open={isOpen}
         aria-expanded={isOpen}
         aria-label={isOpen ? 'Close menu' : 'Open menu'}
       >
@@ -79,66 +148,86 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
         >
           <path
             d="M4 12L20 12"
-            className="origin-center -translate-y-[7px] transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] group-aria-expanded:translate-x-0 group-aria-expanded:translate-y-0 group-aria-expanded:rotate-[315deg]"
+            className={cn(
+              'origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)]',
+              isOpen ? 'translate-x-0 translate-y-0 rotate-[315deg]' : '-translate-y-[7px]',
+            )}
           />
           <path
             d="M4 12H20"
-            className="origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.8)] group-aria-expanded:rotate-45"
+            className={cn(
+              'origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.8)]',
+              isOpen ? 'rotate-45' : '',
+            )}
           />
           <path
             d="M4 12H20"
-            className="origin-center translate-y-[7px] transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] group-aria-expanded:translate-y-0 group-aria-expanded:rotate-[135deg]"
+            className={cn(
+              'origin-center transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)]',
+              isOpen ? 'translate-y-0 rotate-[135deg]' : 'translate-y-[7px]',
+            )}
           />
         </svg>
       </button>
 
-      {/* Mobile Menu Overlay with Animation */}
-      <AnimatePresence>
-        {isOpen && (
+      {/* Mobile Menu Overlay with Animation - Rendered via Portal */}
+      {isMounted &&
+        shouldRender &&
+        createPortal(
           <div
             ref={menuRef}
-            className="fixed inset-0 z-50 bg-black md:hidden"
+            className="fixed inset-0 z-[1000] bg-black md:hidden w-full h-full"
             style={{
               clipPath: 'circle(0% at 100% 0%)',
             }}
           >
-            {/* Navigation Links with Stagger Animation */}
-            <motion.div
-              className="flex flex-col items-left justify-start mt-10 h-[calc(100vh-120px)] p-3 gap-0.5"
-              initial="closed"
-              animate="open"
-              exit="closed"
-              variants={{
-                open: {
-                  transition: { staggerChildren: 0.12, delayChildren: 0.15 },
-                },
-                closed: {
-                  transition: { staggerChildren: 0.05, staggerDirection: -1 },
-                },
-              }}
+            {/* Close Button - Top Right */}
+            <button
+              onClick={closeMenu}
+              className="absolute top-5 right-2.5 z-10 text-yellow hover:opacity-70 transition-opacity"
+              aria-label="Close menu"
+            >
+              <svg
+                className="w-9 h-9"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Navigation Links with GSAP Stagger */}
+            <div
+              ref={navItemsRef}
+              className="relative flex flex-col items-left justify-start mt-10 h-[calc(100vh-120px)] p-3 gap-0.5"
             >
               {navItems.map((item, index) => (
-                <motion.a
+                <a
                   key={item.href}
                   href={item.href}
                   onClick={closeMenu}
                   className={cn(
-                    textVariants({ size: '8xl', font: 'oldman', weight: 'bold', leading: 'none' }),
-                    'text-yellow hover:opacity-70 transition-opacity',
+                    textVariants({
+                      size: '8xl',
+                      font: 'oldman',
+                      weight: 'bold',
+                      leading: 'none',
+                    }),
+                    'text-yellow',
                   )}
-                  variants={{
-                    closed: { opacity: 0, y: -20 },
-                    open: { opacity: 1, y: 0 },
-                  }}
-                  transition={{ duration: 0.5, ease: Power4.easeInOut }}
                 >
                   {item.label}
-                </motion.a>
+                </a>
               ))}
 
               {/* Buy Tickets Button */}
               {ticketUrl && (
-                <motion.a
+                <a
                   href={ticketUrl}
                   onClick={closeMenu}
                   className={cn(
@@ -147,28 +236,16 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  variants={{
-                    closed: { opacity: 0, y: -20 },
-                    open: { opacity: 1, y: 0 },
-                  }}
-                  transition={{ duration: 0.5, ease: Power4.easeInOut }}
                 >
                   BUY TICKETS
-                </motion.a>
+                </a>
               )}
-            </motion.div>
+            </div>
 
-            {/* Branding at Bottom with Animation */}
-            <motion.div
+            {/* Branding at Bottom with GSAP Animation */}
+            <div
+              ref={brandingRef}
               className="absolute bottom-5 left-5 right-5 flex justify-between items-end"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{
-                delay: 0.15 + (navItems.length + (ticketUrl ? 1 : 0)) * 0.12,
-                duration: 0.5,
-                ease: Power4.easeInOut,
-              }}
             >
               <Image
                 src="/foilco-multiplicity-yellow.svg"
@@ -178,16 +255,21 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
               />
               <div
                 className={cn(
-                  textVariants({ size: '4xl', font: 'oldman', weight: 'bold', leading: 'none' }),
+                  textVariants({
+                    size: '4xl',
+                    font: 'oldman',
+                    weight: 'bold',
+                    leading: 'none',
+                  }),
                   'text-yellow',
                 )}
               >
                 Multiplicity
               </div>
-            </motion.div>
-          </div>
+            </div>
+          </div>,
+          document.body,
         )}
-      </AnimatePresence>
     </>
   )
 }
