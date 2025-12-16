@@ -275,7 +275,7 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
                     ref={(el) => {
                       slideRefs.current[index] = el
                     }}
-                    className="relative w-full aspect-[16/9] transition-all duration-300 ease-out overflow-hidden rounded-2xl bg-pink"
+                    className="relative w-full aspect-square md:aspect-[16/9] transition-all duration-300 ease-out overflow-hidden rounded-2xl bg-pink"
                     style={{
                       opacity: hasAnimated ? opacity : 0,
                       transform: `scale(${scale})`,

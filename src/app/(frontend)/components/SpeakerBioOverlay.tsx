@@ -92,7 +92,7 @@ const renderRichText = (lexical: any): React.ReactNode => {
       return (
         <a
           key={index}
-          href={node.url}
+          href={node.fields?.url || ''}
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:opacity-70"
