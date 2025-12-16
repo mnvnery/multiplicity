@@ -46,6 +46,12 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
       return
     }
 
+    // Check if device has touch support - skip cursor functionality on mobile
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (isTouchDevice) {
+      return
+    }
+
     // Move Container
     const xMoveContainer = gsap.quickTo(modalContainer.current, 'left', {
       duration: 1,
@@ -148,7 +154,7 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
         variants={scaleAnimation}
         initial="initial"
         animate={shouldShow ? 'enter' : 'closed'}
-        className="fixed top-0 left-0 w-[90px] h-[90px] pointer-events-none z-[9999] flex items-center justify-center"
+        className="hidden md:flex fixed top-0 left-0 w-[90px] h-[90px] pointer-events-none z-[9999] items-center justify-center"
         style={{
           transformOrigin: 'center center',
           visibility: shouldShow ? 'visible' : 'hidden',
