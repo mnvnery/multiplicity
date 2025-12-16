@@ -1,8 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useRef } from 'react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { textVariants, cn, buttonVariants } from '../lib/variants'
 import Image from 'next/image'
+import { SofterButton } from './SofterButton'
 
 interface FooterProps {
   socialLinks?: {
@@ -14,11 +16,38 @@ interface FooterProps {
 }
 
 export function Footer({ socialLinks, name, email }: FooterProps) {
+  const mailingRef = useRef<HTMLElement>(null)
+  const footerRef = useRef<HTMLElement>(null)
+
+  // Scroll-triggered animations for mailing section
+  const { scrollYProgress: mailingProgress } = useScroll({
+    target: mailingRef,
+    offset: ['start 0.8', 'start 0.3'],
+  })
+
+  const mailingOpacity = useTransform(mailingProgress, [0, 0.5], [0, 1])
+  const mailingY = useTransform(mailingProgress, [0, 0.5], [50, 0])
+
+  // Scroll-triggered animations for footer
+  const { scrollYProgress: footerProgress } = useScroll({
+    target: footerRef,
+    offset: ['start 0.8', 'start 0.3'],
+  })
+
+  const footerOpacity = useTransform(footerProgress, [0, 0.5], [0, 1])
+  const footerY = useTransform(footerProgress, [0, 0.5], [30, 0])
+
   return (
     <>
       {/* Mailing List Section */}
-      <section className="bg-black text-white px-3 md:px-5 py-16 md:py-32">
-        <div className="max-w-4xl mx-auto text-center">
+      <section ref={mailingRef} className="bg-black text-white px-3 md:px-5 py-16 md:py-32">
+        <motion.div
+          className="max-w-4xl mx-auto text-center"
+          style={{
+            opacity: mailingOpacity,
+            y: mailingY,
+          }}
+        >
           <h2
             className={cn(
               textVariants({
@@ -52,7 +81,7 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
                 'placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white',
               )}
             />
-            <button
+            <SofterButton
               type="submit"
               className={cn(
                 'bg-white text-black border border-white px-4 py-3',
@@ -64,14 +93,20 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
               )}
             >
               SUBMIT
-            </button>
+            </SofterButton>
           </form>
-        </div>
+        </motion.div>
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="bg-black text-white px-3 md:px-5">
-        <div className="max-w-8xl mx-auto border-t-2 py-8 md:py-16 border-white grid grid-cols-1 md:grid-cols-[1.5fr_1fr_2fr] gap-12">
+      <footer ref={footerRef} id="contact" className="bg-black text-white px-3 md:px-5">
+        <motion.div
+          className="max-w-8xl mx-auto border-t-2 py-8 md:py-16 border-white grid grid-cols-1 md:grid-cols-[1.5fr_1fr_2fr] gap-12"
+          style={{
+            opacity: footerOpacity,
+            y: footerY,
+          }}
+        >
           {/* Left Column - Company Information */}
           <div
             className={cn(
@@ -194,7 +229,7 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </footer>
     </>
   )

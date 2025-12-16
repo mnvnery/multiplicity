@@ -7,8 +7,13 @@ import { HeroCarousel } from './components/HeroCarousel'
 import { MobileMenu } from './components/MobileMenu'
 import { Footer } from './components/Footer'
 import { PastEventsCarousel } from './components/PastEventsCarousel'
+import { PastEventsSection } from './components/PastEventsSection'
 import { NextEventSection } from './components/NextEventSection'
 import { AboutSection } from './components/AboutSection'
+import { RevealText } from './components/RevealText'
+import { SofterButton } from './components/SofterButton'
+import { CustomCursor } from './components/CustomCursor'
+import { AnimatedHeader } from './components/AnimatedHeader'
 import { AiFillInstagram, AiFillLinkedin } from 'react-icons/ai'
 import { textVariants, buttonVariants, cn } from './lib/variants'
 
@@ -53,8 +58,9 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-yellow text-black">
+      <CustomCursor />
       {/* Header */}
-      <header className="sticky top-0 z-[10000] bg-yellow md:relative flex justify-between items-center px-2.5 md:px-5 py-5">
+      <AnimatedHeader className="sticky top-0 z-[10000] bg-yellow md:bg-transparent md:relative flex justify-between items-center px-2.5 md:px-5 py-5">
         {/* Social Icons - Mobile Left */}
         <div className="flex gap-4 md:hidden">
           {siteSettings?.socialLinks?.instagram && (
@@ -62,7 +68,10 @@ export default async function HomePage() {
               href={siteSettings.socialLinks.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(textVariants({ size: '2xl' }), 'hover:opacity-70 transition-opacity')}
+              className={cn(
+                textVariants({ size: '2xl' }),
+                'hover:opacity-70 hover:scale-110 transition-all duration-300',
+              )}
             >
               <AiFillInstagram />
             </a>
@@ -72,7 +81,10 @@ export default async function HomePage() {
               href={siteSettings.socialLinks.linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(textVariants({ size: '2xl' }), 'hover:opacity-70 transition-opacity')}
+              className={cn(
+                textVariants({ size: '2xl' }),
+                'hover:opacity-70 hover:scale-110 transition-all duration-300',
+              )}
             >
               <AiFillLinkedin />
             </a>
@@ -86,15 +98,24 @@ export default async function HomePage() {
             'hidden md:flex items-center gap-2.5',
           )}
         >
-          <a href="#next-event" className="hover:underline">
+          <a
+            href="#next-event"
+            className="hover:underline transition-all duration-300 hover:opacity-70"
+          >
             NEXT EVENT
           </a>
           <span>/</span>
-          <a href="#past-events" className="hover:underline">
+          <a
+            href="#past-events"
+            className="hover:underline transition-all duration-300 hover:opacity-70"
+          >
             PAST EVENTS
           </a>
           <span>/</span>
-          <a href="#contact" className="hover:underline">
+          <a
+            href="#contact"
+            className="hover:underline transition-all duration-300 hover:opacity-70"
+          >
             CONTACT
           </a>
         </nav>
@@ -107,7 +128,10 @@ export default async function HomePage() {
                 href={siteSettings.socialLinks.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(textVariants({ size: '2xl' }), 'hover:opacity-70 transition-opacity')}
+                className={cn(
+                  textVariants({ size: '2xl' }),
+                  'hover:opacity-70 hover:scale-110 transition-all duration-300',
+                )}
               >
                 <AiFillInstagram />
               </a>
@@ -117,21 +141,25 @@ export default async function HomePage() {
                 href={siteSettings.socialLinks.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(textVariants({ size: '2xl' }), 'hover:opacity-70 transition-opacity')}
+                className={cn(
+                  textVariants({ size: '2xl' }),
+                  'hover:opacity-70 hover:scale-110 transition-all duration-300',
+                )}
               >
                 <AiFillLinkedin />
               </a>
             )}
           </div>
           {nextEvent?.ticketUrl && (
-            <a
+            <SofterButton
+              as="a"
               href={nextEvent.ticketUrl}
               className={buttonVariants({ variant: 'primary', size: 'lg' })}
               target="_blank"
               rel="noopener noreferrer"
             >
               BUY TICKETS
-            </a>
+            </SofterButton>
           )}
         </div>
 
@@ -147,11 +175,11 @@ export default async function HomePage() {
           }
           ticketUrl={nextEvent?.ticketUrl || undefined}
         />
-      </header>
+      </AnimatedHeader>
 
       {/* Logo */}
       <div className="max-w-8xl mx-auto px-2.5 md:px-5 mb-14 md:mb-24">
-        <div className="text-center mx-auto mt-10 md:mt-16">
+        <RevealText animation="mask" className="text-center mx-auto mt-10 md:mt-16">
           <Image
             src="/Multiplicity_Logo.svg"
             alt="Multiplicity Logo"
@@ -159,10 +187,10 @@ export default async function HomePage() {
             height={322}
             className="w-full h-auto"
           />
-        </div>
+        </RevealText>
         {/* Next event + brought to you by */}
         <div className="flex flex-col lg:flex-row justify-start lg:justify-between items-start lg:items-center gap-2 mt-5 lg:-mt-[2.5%] lg:mr-[10.5%]">
-          <div className="text-center">
+          <RevealText delay={0.1} className="text-center">
             <p
               className={cn(
                 textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
@@ -194,8 +222,8 @@ export default async function HomePage() {
                 })()}
               </a>
             </p>
-          </div>
-          <div className="text-center">
+          </RevealText>
+          <RevealText delay={0.2} className="text-center">
             <p
               className={cn(
                 textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
@@ -211,7 +239,7 @@ export default async function HomePage() {
               />
               <span className="mt-1">Brought to you by FOILCO</span>
             </p>
-          </div>
+          </RevealText>
         </div>
       </div>
 
@@ -231,18 +259,9 @@ export default async function HomePage() {
       {nextEvent && <NextEventSection nextEvent={nextEvent} />}
       {/* Past Events Section */}
       {pastEvents.docs.length > 0 && (
-        <section id="past-events" className="bg-pink pb-6 md:pb-24">
-          <div className="text-center max-w-8xl mx-auto px-2.5 md:px-5 pt-5 pb-8 md:py-8">
-            <Image
-              src="/PAST EVENTS.svg"
-              alt="Past Events"
-              width={1392}
-              height={322}
-              className="w-full h-auto"
-            />
-          </div>
+        <PastEventsSection>
           <PastEventsCarousel events={[...pastEvents.docs, ...pastEvents.docs]} />
-        </section>
+        </PastEventsSection>
       )}
       {/* Footer */}
       <Footer

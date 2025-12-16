@@ -3,6 +3,13 @@
 import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import { useEffect, useCallback, useState, useRef } from 'react'
+import { motion, useScroll, useTransform } from 'motion/react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
 
 interface HeroImage {
   image:
@@ -20,6 +27,7 @@ interface HeroCarouselProps {
 
 export function HeroCarousel({ images }: HeroCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
@@ -33,6 +41,18 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
 
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [hasAnimated, setHasAnimated] = useState(false)
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [imagesLoaded, setImagesLoaded] = useState(false)
+
+  // Parallax scroll effect on page scroll
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  })
+
+  // Subtle parallax movement as page scrolls
+  const parallaxY = useTransform(scrollYProgress, [0, 1], ['-10%', '10%'])
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return
@@ -126,10 +146,60 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
     return () => clearTimeout(timer)
   }, [])
 
+  // GSAP mask reveal animation - staggered slides from TOP (mirrors logo from bottom)
+  useEffect(() => {
+    if (!imagesLoaded || hasAnimated || slideRefs.current.length === 0) return
+
+    const slides = slideRefs.current.filter((ref) => ref !== null)
+    if (slides.length === 0) return
+
+    // Sort slides by their x position (left to right)
+    const sortedSlides = [...slides].sort((a, b) => {
+      const rectA = a.getBoundingClientRect()
+      const rectB = b.getBoundingClientRect()
+      return rectA.left - rectB.left
+    })
+
+    // Set initial state - mask from top for each slide
+    gsap.set(sortedSlides, {
+      clipPath: 'inset(0% 0% 100% 0%)',
+      opacity: 0,
+    })
+
+    // Animate reveal with stagger - coordinated with logo timing
+    const timeline = gsap.timeline({
+      delay: 0.1,
+      onComplete: () => setHasAnimated(true),
+    })
+
+    timeline.to(sortedSlides, {
+      clipPath: 'inset(0% 0% 0% 0%)',
+      opacity: 1,
+      duration: 0.8,
+      stagger: 0.05,
+      ease: 'power3.out',
+    })
+
+    return () => {
+      timeline.kill()
+    }
+  }, [imagesLoaded, hasAnimated])
+
+  // Track when images are ready
+  useEffect(() => {
+    if (emblaApi && !imagesLoaded) {
+      const timer = setTimeout(() => {
+        setImagesLoaded(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [emblaApi, imagesLoaded])
+
   if (!images || images.length === 0) return null
 
   return (
     <div
+      ref={sectionRef}
       className="transition-all duration-[1200ms] ease-out"
       style={{
         width: isInitialLoad ? '100vw' : '100%',
@@ -159,22 +229,22 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
               const wrappedDistance = images.length - distance
               distance = Math.min(distance, wrappedDistance)
 
-              // Calculate scale: center (selected) = 1.0, immediate neighbors = 0.75, others = 0.65
-              let scale = 0.65
+              // Calculate opacity and scale for depth effect
               let opacity = 0.6
+              let scale = 0.94
               if (isSelected) {
-                scale = 1.0
                 opacity = 1.0
+                scale = 1.0
               } else if (distance === 1) {
                 // Immediate neighbors
-                scale = 0.9
                 opacity = 0.8
+                scale = 0.97
               }
 
               return (
                 <div
                   key={heroImage.id || index}
-                  className="flex-[0_0_85%] md:flex-[0_0_66.666%] min-w-0 px-1 md:px-2"
+                  className="flex-[0_0_85%] md:flex-[0_0_66.666%] min-w-0 px-1 md:px-1"
                   style={
                     {
                       // Show 1/3 of side images, so each slide takes 66.666% width
@@ -183,20 +253,37 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
                   }
                 >
                   <div
-                    className="relative w-full aspect-[16/9] transition-all duration-300 ease-out"
+                    ref={(el) => {
+                      slideRefs.current[index] = el
+                    }}
+                    className="relative w-full aspect-[16/9] transition-all duration-300 ease-out overflow-hidden rounded-2xl"
                     style={{
-                      transform: `scaleY(${scale})`,
-                      opacity: opacity,
+                      opacity: hasAnimated ? opacity : 0,
+                      transform: `scale(${scale})`,
                     }}
                   >
-                    <Image
-                      src={imageUrl}
-                      alt={imageAlt}
-                      width={1200}
-                      height={600}
-                      className="w-full h-full object-cover rounded-lg"
-                      priority={index === 0}
-                    />
+                    <motion.div
+                      style={{
+                        y: parallaxY,
+                      }}
+                      className="w-full h-full"
+                    >
+                      <motion.div
+                        initial={{ scale: 1.15 }}
+                        animate={{ scale: isSelected ? 1 : 1.08 }}
+                        transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+                        className="w-full h-full"
+                      >
+                        <Image
+                          src={imageUrl}
+                          alt={imageAlt}
+                          width={1200}
+                          height={600}
+                          className="w-full h-full object-cover"
+                          priority={index === 0}
+                        />
+                      </motion.div>
+                    </motion.div>
                   </div>
                 </div>
               )

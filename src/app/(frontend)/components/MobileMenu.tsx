@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Power4 } from 'gsap'
+import { gsap, Power4 } from 'gsap'
 import { textVariants, buttonVariants, cn } from '../lib/variants'
 import Image from 'next/image'
 interface MobileMenuProps {
@@ -21,9 +21,39 @@ const navItems = [
 
 export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
+
+  // GSAP mask reveal animation
+  useEffect(() => {
+    if (!menuRef.current) return
+
+    const menu = menuRef.current
+
+    if (isOpen) {
+      // Opening animation - mask reveal from center
+      gsap.set(menu, {
+        clipPath: 'circle(0% at 100% 0%)',
+        opacity: 1,
+      })
+
+      gsap.to(menu, {
+        clipPath: 'circle(150% at 100% 0%)',
+        duration: 0.8,
+        ease: 'power3.inOut',
+      })
+    } else if (menu.style.clipPath !== 'circle(0% at 100% 0%)') {
+      // Closing animation - mask collapse to top right with slight delay for content to fade
+      gsap.to(menu, {
+        clipPath: 'circle(0% at 100% 0%)',
+        duration: 0.7,
+        ease: 'power3.inOut',
+        delay: 0.15,
+      })
+    }
+  }, [isOpen])
 
   return (
     <>
@@ -65,18 +95,19 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
       {/* Mobile Menu Overlay with Animation */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <div
+            ref={menuRef}
             className="fixed inset-0 z-50 bg-black md:hidden"
-            initial={{ opacity: 0, y: '-100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '-100%' }}
-            transition={{ duration: 0.8, ease: Power4.easeInOut }}
+            style={{
+              clipPath: 'circle(0% at 100% 0%)',
+            }}
           >
             {/* Navigation Links with Stagger Animation */}
             <motion.div
               className="flex flex-col items-left justify-start mt-10 h-[calc(100vh-120px)] p-3 gap-0.5"
               initial="closed"
               animate="open"
+              exit="closed"
               variants={{
                 open: {
                   transition: { staggerChildren: 0.12, delayChildren: 0.15 },
@@ -96,10 +127,10 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
                     'text-yellow hover:opacity-70 transition-opacity',
                   )}
                   variants={{
-                    closed: { opacity: 0, y: 20 },
+                    closed: { opacity: 0, y: -20 },
                     open: { opacity: 1, y: 0 },
                   }}
-                  transition={{ duration: 0.8, ease: Power4.easeInOut }}
+                  transition={{ duration: 0.5, ease: Power4.easeInOut }}
                 >
                   {item.label}
                 </motion.a>
@@ -112,15 +143,15 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
                   onClick={closeMenu}
                   className={cn(
                     buttonVariants({ variant: 'primary', size: 'lg', width: 'auto' }),
-                    'mt-4',
+                    'mt-4 !outline-none !ring-0 !border-0',
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
                   variants={{
-                    closed: { opacity: 0, y: 20 },
+                    closed: { opacity: 0, y: -20 },
                     open: { opacity: 1, y: 0 },
                   }}
-                  transition={{ duration: 0.8, ease: Power4.easeInOut }}
+                  transition={{ duration: 0.5, ease: Power4.easeInOut }}
                 >
                   BUY TICKETS
                 </motion.a>
@@ -132,9 +163,10 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
               className="absolute bottom-5 left-5 right-5 flex justify-between items-end"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               transition={{
                 delay: 0.15 + (navItems.length + (ticketUrl ? 1 : 0)) * 0.12,
-                duration: 0.8,
+                duration: 0.5,
                 ease: Power4.easeInOut,
               }}
             >
@@ -153,7 +185,7 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
                 Multiplicity
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

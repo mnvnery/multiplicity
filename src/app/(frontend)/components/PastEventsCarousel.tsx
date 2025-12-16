@@ -2,9 +2,16 @@
 
 import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AutoScroll from 'embla-carousel-auto-scroll'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { textVariants, cn } from '../lib/variants'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
 
 interface PastEvent {
   id: string | number
@@ -30,6 +37,7 @@ interface PastEventsCarouselProps {
 }
 
 export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
@@ -46,6 +54,62 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
       }),
     ],
   )
+
+  // Parallax scroll effect for images (only on desktop)
+  const [isMobile, setIsMobile] = useState(false)
+  const [hasAnimated, setHasAnimated] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Add GSAP reveal animation for carousel
+  useEffect(() => {
+    if (!containerRef.current || hasAnimated) return
+
+    const container = containerRef.current
+    const slides = container.querySelectorAll('[data-past-event]')
+
+    // Set initial state
+    gsap.set(slides, {
+      opacity: 0,
+      y: 60,
+    })
+
+    // Animate reveal with stagger
+    const timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: container,
+        start: 'top 85%',
+        toggleActions: 'play none none none',
+      },
+      onComplete: () => setHasAnimated(true),
+    })
+
+    timeline.to(slides, {
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+      stagger: 0.05,
+      ease: 'power2.out',
+    })
+
+    return () => {
+      timeline.kill()
+    }
+  }, [hasAnimated])
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start end', 'end start'],
+  })
+
+  const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
 
   // Wait for images to decode before starting auto-scroll
   useEffect(() => {
@@ -119,119 +183,135 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
   }
 
   return (
-    <div className="overflow-hidden" ref={emblaRef}>
-      <div className="flex items-end gap-0 touch-pan-y cursor-grab active:cursor-grabbing">
-        {events.map((event, index) => {
-          const firstImage = event.images && event.images.length > 0 ? event.images[0] : null
-          const aspectRatio = firstImage?.aspectRatio || 'landscape'
+    <div className="overflow-hidden" ref={containerRef}>
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex items-end gap-0 touch-pan-y cursor-grab active:cursor-grabbing">
+          {events.map((event, index) => {
+            const firstImage = event.images && event.images.length > 0 ? event.images[0] : null
+            const aspectRatio = firstImage?.aspectRatio || 'landscape'
 
-          return (
-            <div
-              key={`${event.id}-${index}`}
-              className="pl-4 overflow-hidden flex flex-col flex-[0_0_auto] shrink-0 basis-[300px] md:basis-[400px]"
-            >
-              {/* Image section at bottom */}
-              {firstImage?.image &&
-                typeof firstImage.image === 'object' &&
-                firstImage.image?.url && (
-                  <div
-                    className={`${aspectRatioClasses[aspectRatio as keyof typeof aspectRatioClasses] || aspectRatioClasses.landscape} overflow-hidden`}
-                  >
-                    <Image
-                      src={firstImage.image.url}
-                      alt={event.title}
-                      width={400}
-                      height={300}
-                      sizes="(min-width: 1024px) 340px, (min-width: 640px) 300px, 260px"
-                      className="w-full h-full object-cover"
-                      priority={index < 2}
-                    />
+            return (
+              <motion.div
+                key={`${event.id}-${index}`}
+                className="pl-4 overflow-hidden flex flex-col flex-[0_0_auto] shrink-0 basis-[300px] md:basis-[450px] group"
+                data-past-event
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                {/* Image section at bottom */}
+                {firstImage?.image &&
+                  typeof firstImage.image === 'object' &&
+                  firstImage.image?.url && (
+                    <div
+                      className={`${aspectRatioClasses[aspectRatio as keyof typeof aspectRatioClasses] || aspectRatioClasses.landscape} overflow-hidden`}
+                    >
+                      <motion.div
+                        style={{
+                          y: !isMobile ? imageY : '0%',
+                        }}
+                        className="w-full h-full overflow-hidden"
+                      >
+                        <motion.div
+                          transition={{ duration: 0.4, ease: 'easeOut' }}
+                          className="w-full h-full"
+                        >
+                          <Image
+                            src={firstImage.image.url}
+                            alt={event.title}
+                            width={400}
+                            height={300}
+                            sizes="(min-width: 1024px) 340px, (min-width: 640px) 300px, 260px"
+                            className="w-full h-full object-cover"
+                            priority={index < 2}
+                          />
+                        </motion.div>
+                      </motion.div>
+                    </div>
+                  )}
+
+                {/* Text section at top */}
+                <div className="py-3 flex flex-col h-[280px]">
+                  <div className="flex justify-start items-center gap-1 mb-3">
+                    <h3
+                      className={cn(
+                        textVariants({
+                          size: '2xl',
+                          font: 'oldman',
+                          transform: 'uppercase',
+                          weight: 'bold',
+                          leading: 'none',
+                        }),
+                        'mb-2',
+                      )}
+                    >
+                      {event.title}
+                    </h3>
+                    <div
+                      className={cn(
+                        textVariants({
+                          size: '2xl',
+                          font: 'oldman',
+                          transform: 'uppercase',
+                          weight: 'normal',
+                          leading: 'none',
+                        }),
+                        'mb-2',
+                      )}
+                    >
+                      {new Date(event.date)
+                        .toLocaleDateString('en-US', {
+                          year: 'numeric',
+                        })
+                        .toUpperCase()}
+                    </div>
                   </div>
-                )}
-
-              {/* Text section at top */}
-              <div className="py-3 flex flex-col h-[280px]">
-                <div className="flex justify-start items-center gap-1 mb-3">
-                  <h3
-                    className={cn(
-                      textVariants({
-                        size: '2xl',
-                        font: 'oldman',
-                        transform: 'uppercase',
-                        weight: 'bold',
-                        leading: 'none',
-                      }),
-                      'mb-2',
-                    )}
-                  >
-                    {event.title}
-                  </h3>
                   <div
                     className={cn(
                       textVariants({
-                        size: '2xl',
-                        font: 'oldman',
+                        size: 'base',
+                        font: 'ufficio',
                         transform: 'uppercase',
                         weight: 'normal',
                         leading: 'none',
                       }),
-                      'mb-2',
+                      'flex flex-col',
                     )}
                   >
-                    {new Date(event.date)
-                      .toLocaleDateString('en-US', {
-                        year: 'numeric',
-                      })
-                      .toUpperCase()}
+                    {event.speakers && event.speakers.length > 0 ? (
+                      <>
+                        {event.speakers.map((speaker: any, idx: number) => (
+                          <p key={idx} className="py-3 border-b border-dashed border-black">
+                            {speaker?.names} {speaker?.studioName && `/ ${speaker.studioName}`}
+                          </p>
+                        ))}
+                        {/* Add empty space for events with fewer than 4 speakers */}
+                        {Array.from({ length: Math.max(0, 4 - event.speakers.length) }).map(
+                          (_, idx) => (
+                            <p
+                              key={`spacer-${idx}`}
+                              className="py-3 border-b border-dashed border-transparent"
+                            >
+                              &nbsp;
+                            </p>
+                          ),
+                        )}
+                      </>
+                    ) : (
+                      // Empty space for events without speakers
+                      Array.from({ length: 4 }).map((_, idx) => (
+                        <p
+                          key={`spacer-${idx}`}
+                          className="py-3 border-b border-dashed border-transparent"
+                        >
+                          &nbsp;
+                        </p>
+                      ))
+                    )}
                   </div>
                 </div>
-                <div
-                  className={cn(
-                    textVariants({
-                      size: 'base',
-                      font: 'ufficio',
-                      transform: 'uppercase',
-                      weight: 'normal',
-                      leading: 'none',
-                    }),
-                    'flex flex-col',
-                  )}
-                >
-                  {event.speakers && event.speakers.length > 0 ? (
-                    <>
-                      {event.speakers.map((speaker: any, idx: number) => (
-                        <p key={idx} className="py-3 border-b border-dashed border-black">
-                          {speaker?.names} {speaker?.studioName && `/ ${speaker.studioName}`}
-                        </p>
-                      ))}
-                      {/* Add empty space for events with fewer than 4 speakers */}
-                      {Array.from({ length: Math.max(0, 4 - event.speakers.length) }).map(
-                        (_, idx) => (
-                          <p
-                            key={`spacer-${idx}`}
-                            className="py-3 border-b border-dashed border-transparent"
-                          >
-                            &nbsp;
-                          </p>
-                        ),
-                      )}
-                    </>
-                  ) : (
-                    // Empty space for events without speakers
-                    Array.from({ length: 4 }).map((_, idx) => (
-                      <p
-                        key={`spacer-${idx}`}
-                        className="py-3 border-b border-dashed border-transparent"
-                      >
-                        &nbsp;
-                      </p>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        })}
+              </motion.div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

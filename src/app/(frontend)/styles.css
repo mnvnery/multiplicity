@@ -48,6 +48,30 @@ font-family
     /* color: #333; */
   }
 
+  /* Smooth cursor interactions */
+  a,
+  button {
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  /* Performance optimization for animations */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* Smooth scrolling with reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* Add scroll margin for anchor links to account for sticky header */
   #next-event,
   #past-events,

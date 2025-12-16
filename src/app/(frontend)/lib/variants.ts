@@ -62,11 +62,11 @@ export type TextVariants = VariantProps<typeof textVariants>
 
 // Button variants
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        primary: 'bg-white text-black border-3 border-black hover:bg-pink hover:text-black',
+        primary: 'bg-white text-black border-3 border-black',
         secondary: 'bg-black text-yellow border-3 border-black hover:bg-yellow hover:text-black',
         tertiary: 'bg-yellow text-black border-3 border-black hover:bg-pink hover:text-black',
         outline: 'bg-transparent text-black border-3 border-black hover:bg-black hover:text-yellow',

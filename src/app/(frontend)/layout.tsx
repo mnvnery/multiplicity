@@ -2,6 +2,7 @@ import React from 'react'
 import localFont from 'next/font/local'
 import './styles.css'
 import { LenisProvider } from './components/LenisProvider'
+import { GSAPProvider } from './components/GSAPProvider'
 
 const ufficioFont = localFont({
   src: '../fonts/UfficioMono-400.woff2',
@@ -39,9 +40,11 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ufficioFont.variable} ${oldmanFont.variable}`}>
       <body>
-        <LenisProvider>
-          <main>{children}</main>
-        </LenisProvider>
+        <GSAPProvider>
+          <LenisProvider>
+            <main>{children}</main>
+          </LenisProvider>
+        </GSAPProvider>
       </body>
     </html>
   )

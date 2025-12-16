@@ -1,10 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { textVariants, cn } from '../lib/variants'
 import SpeakerModal from './SpeakerModal'
 import { SpeakerBioOverlay } from './SpeakerBioOverlay'
 import Image from 'next/image'
+import { motion } from 'motion/react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
 
 interface Speaker {
   studioName?: string | null
@@ -29,6 +36,41 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
   const [modal, setModal] = useState({ active: false, index: 0 })
   const [overlayOpen, setOverlayOpen] = useState(false)
   const [overlayIndex, setOverlayIndex] = useState(0)
+  const [hasAnimated, setHasAnimated] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // Add stagger animation for speakers
+  useEffect(() => {
+    if (!listRef.current || hasAnimated) return
+
+    const speakers = listRef.current.querySelectorAll('[data-speaker]')
+
+    gsap.set(speakers, {
+      opacity: 0,
+      y: 40,
+    })
+
+    const timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: listRef.current,
+        start: 'top 85%',
+        toggleActions: 'play none none none',
+      },
+      onComplete: () => setHasAnimated(true),
+    })
+
+    timeline.to(speakers, {
+      opacity: 1,
+      y: 0,
+      duration: 0.6,
+      stagger: 0.1,
+      ease: 'power2.out',
+    })
+
+    return () => {
+      timeline.kill()
+    }
+  }, [hasAnimated])
 
   if (!speakers || speakers.length === 0) return null
 
@@ -54,16 +96,17 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
   return (
     <>
       {/* Speakers list */}
-      <div className="md:col-span-2 flex flex-col">
+      <div ref={listRef} className="md:col-span-2 flex flex-col">
         {speakers.map((speaker, idx) => {
           const imageData =
             typeof speaker.image === 'object' && speaker.image !== null ? speaker.image : null
           const hasImage = !!imageData?.url
 
           return (
-            <div
+            <motion.div
               key={idx}
-              className="md:pl-5 py-6 relative z-10"
+              data-speaker
+              className="md:pl-5 py-6 relative z-10 group"
               style={{
                 cursor: hasImage ? 'none' : 'pointer',
               }}
@@ -79,6 +122,8 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
                 console.log('Click event fired on speaker', idx)
                 handleSpeakerClick(e, idx)
               }}
+              whileHover={{ x: 5 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
             >
               {imageData?.url && (
                 <div className="md:hidden relative w-full aspect-[3/2] mb-2">
@@ -100,7 +145,7 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
                       transform: 'uppercase',
                       leading: 'none',
                     }),
-                    'mb-1',
+                    'mb-1 transition-all duration-300 group-hover:opacity-70',
                   )}
                 >
                   {speaker.studioName}
@@ -114,11 +159,12 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
                     weight: 'normal',
                     leading: 'none',
                   }),
+                  'transition-all duration-300 group-hover:opacity-70',
                 )}
               >
                 {speaker.names}
               </p>
-            </div>
+            </motion.div>
           )
         })}
       </div>
