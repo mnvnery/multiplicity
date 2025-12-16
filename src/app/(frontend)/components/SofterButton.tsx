@@ -15,6 +15,7 @@ interface SofterButtonProps {
   rel?: string
   type?: 'button' | 'submit' | 'reset'
   variant?: 'primary' | 'secondary'
+  disabled?: boolean
 }
 
 export function SofterButton({
@@ -27,6 +28,7 @@ export function SofterButton({
   rel,
   type = 'button',
   variant = 'primary',
+  disabled = false,
 }: SofterButtonProps) {
   const buttonRef = useRef<HTMLElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
@@ -108,7 +110,7 @@ export function SofterButton({
     ref: buttonRef as any,
     className: cn(baseClasses, variantClasses[variant], className),
     ...(Component === 'a' && { href, target, rel }),
-    ...(Component === 'button' && { type, onClick }),
+    ...(Component === 'button' && { type, onClick, disabled }),
   }
 
   return React.createElement(

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import { textVariants, cn, buttonVariants } from '../lib/variants'
 import Image from 'next/image'
@@ -18,6 +18,13 @@ interface FooterProps {
 export function Footer({ socialLinks, name, email }: FooterProps) {
   const mailingRef = useRef<HTMLElement>(null)
   const footerRef = useRef<HTMLElement>(null)
+  const [formName, setFormName] = useState('')
+  const [formEmail, setFormEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error' | null
+    message: string
+  }>({ type: null, message: '' })
 
   // Scroll-triggered animations for mailing section
   const { scrollYProgress: mailingProgress } = useScroll({
@@ -27,6 +34,48 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
 
   const mailingOpacity = useTransform(mailingProgress, [0, 0.5], [0, 1])
   const mailingY = useTransform(mailingProgress, [0, 0.5], [50, 0])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitStatus({ type: null, message: '' })
+
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formName,
+          email: formEmail,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setSubmitStatus({
+          type: 'error',
+          message: data.error || 'Failed to subscribe. Please try again.',
+        })
+      } else {
+        setSubmitStatus({
+          type: 'success',
+          message: 'Thanks for subscribing!',
+        })
+        setFormName('')
+        setFormEmail('')
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'An error occurred. Please try again later.',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   // Scroll-triggered animations for footer
   const { scrollYProgress: footerProgress } = useScroll({
@@ -62,27 +111,48 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
             <br />
             know about upcoming events
           </h2>
-          <form className="flex flex-col gap-4 max-w-xl mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-xl mx-auto">
             <input
               type="text"
               placeholder="JOHN SMITH"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              required
+              disabled={isSubmitting}
               className={cn(
                 'bg-black border-3 border-white text-white px-4 py-3',
                 textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
                 'placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
             />
             <input
               type="email"
               placeholder="YOUR@EMAILADDRESS.COM"
+              value={formEmail}
+              onChange={(e) => setFormEmail(e.target.value)}
+              required
+              disabled={isSubmitting}
               className={cn(
                 'bg-black border-3 border-white text-white px-4 py-3',
                 textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
                 'placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
             />
+            {submitStatus.type && (
+              <div
+                className={cn(
+                  textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                  submitStatus.type === 'success' ? 'text-yellow' : 'text-red-400',
+                )}
+              >
+                {submitStatus.message}
+              </div>
+            )}
             <SofterButton
               type="submit"
+              disabled={isSubmitting}
               className={cn(
                 'bg-white text-black border border-white px-4 py-3',
                 buttonVariants({
@@ -90,9 +160,10 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
                   variant: 'primary',
                 }),
                 '!fl-py-2/1.5 hover:opacity-90 transition-opacity',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
             >
-              SUBMIT
+              {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
             </SofterButton>
           </form>
         </motion.div>

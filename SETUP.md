@@ -166,6 +166,11 @@ R2_ACCESS_KEY_ID=your-key
 R2_SECRET_ACCESS_KEY=your-secret
 R2_ACCOUNT_ID=your-account-id
 R2_REGION=auto
+
+# Mailchimp (for mailing list subscription)
+MAILCHIMP_API_KEY=your-api-key-us16
+MAILCHIMP_LIST_ID=your-audience-id
+MAILCHIMP_SERVER_PREFIX=us16
 ```
 
 ---
