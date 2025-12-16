@@ -286,26 +286,14 @@ export function SpeakerBioOverlay({
           {/* Mobile Navigation Controls */}
           <div className="md:hidden fixed top-0 left-0 right-0 z-[10001] flex justify-between items-center px-0 pt-2 pb-0 bg-[#BFA9FF]">
             <div className="flex items-center gap-4">
-              <button
-                onClick={handlePrev}
-                className="p-2 hover:opacity-70 transition-opacity"
-                aria-label="Previous speaker"
-              >
+              <button onClick={handlePrev} className="p-2" aria-label="Previous speaker">
                 <IoIosArrowBack className="w-9 h-9" />
               </button>
-              <button
-                onClick={handleNext}
-                className="p-2 hover:opacity-70 transition-opacity"
-                aria-label="Next speaker"
-              >
+              <button onClick={handleNext} className="p-2" aria-label="Next speaker">
                 <IoIosArrowForward className="w-9 h-9" />
               </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:opacity-70 transition-opacity"
-              aria-label="Close"
-            >
+            <button onClick={onClose} className="p-2" aria-label="Close">
               <IoIosClose className="w-14 h-14" />
             </button>
           </div>

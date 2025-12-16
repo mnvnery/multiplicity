@@ -44,6 +44,7 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
   const [hasAnimated, setHasAnimated] = useState(false)
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
   const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
 
   // Parallax scroll effect on page scroll
   const { scrollYProgress } = useScroll({
@@ -53,6 +54,15 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
 
   // Subtle parallax movement as page scrolls
   const parallaxY = useTransform(scrollYProgress, [0, 1], ['-10%', '10%'])
+
+  // Handle individual image load
+  const handleImageLoad = useCallback((index: number) => {
+    setLoadedImages((prev) => {
+      const newSet = new Set(prev)
+      newSet.add(index)
+      return newSet
+    })
+  }, [])
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return
@@ -185,15 +195,22 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
     }
   }, [imagesLoaded, hasAnimated])
 
-  // Track when images are ready
+  // Track when images are ready - start animation when first image loads or after timeout
   useEffect(() => {
     if (emblaApi && !imagesLoaded) {
+      // Start animation if first image is loaded
+      if (loadedImages.has(0)) {
+        setImagesLoaded(true)
+        return
+      }
+
+      // Fallback: start animation after timeout even if images haven't loaded
       const timer = setTimeout(() => {
         setImagesLoaded(true)
-      }, 100)
+      }, 500)
       return () => clearTimeout(timer)
     }
-  }, [emblaApi, imagesLoaded])
+  }, [emblaApi, imagesLoaded, loadedImages])
 
   if (!images || images.length === 0) return null
 
@@ -207,7 +224,7 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
         marginRight: isInitialLoad ? 'calc(-50vw + 50%)' : '0',
       }}
     >
-      <div className="relative rounded-xl overflow-hidden" ref={containerRef}>
+      <div className="relative overflow-hidden" ref={containerRef}>
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex touch-pan-y cursor-grab active:cursor-grabbing">
             {images.map((heroImage, index) => {
@@ -231,15 +248,17 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
 
               // Calculate opacity and scale for depth effect
               let opacity = 0.6
-              let scale = 0.94
+              let scale = 0.9
               if (isSelected) {
                 opacity = 1.0
                 scale = 1.0
               } else if (distance === 1) {
                 // Immediate neighbors
-                opacity = 0.8
+                opacity = 0.9
                 scale = 0.97
               }
+
+              const imageIsLoaded = loadedImages.has(index)
 
               return (
                 <div
@@ -256,12 +275,17 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
                     ref={(el) => {
                       slideRefs.current[index] = el
                     }}
-                    className="relative w-full aspect-[16/9] transition-all duration-300 ease-out overflow-hidden rounded-2xl"
+                    className="relative w-full aspect-[16/9] transition-all duration-300 ease-out overflow-hidden rounded-2xl bg-pink"
                     style={{
                       opacity: hasAnimated ? opacity : 0,
                       transform: `scale(${scale})`,
                     }}
                   >
+                    {/* Skeleton loader */}
+                    {!imageIsLoaded && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 animate-pulse" />
+                    )}
+
                     <motion.div
                       style={{
                         y: parallaxY,
@@ -270,7 +294,7 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
                     >
                       <motion.div
                         initial={{ scale: 1.15 }}
-                        animate={{ scale: isSelected ? 1 : 1.08 }}
+                        animate={{ scale: isSelected ? 1.15 : 1.08 }}
                         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
                         className="w-full h-full"
                       >
@@ -281,6 +305,7 @@ export function HeroCarousel({ images }: HeroCarouselProps) {
                           height={600}
                           className="w-full h-full object-cover"
                           priority={index === 0}
+                          onLoad={() => handleImageLoad(index)}
                         />
                       </motion.div>
                     </motion.div>

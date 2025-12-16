@@ -8,6 +8,7 @@ export function CustomCursor() {
   const cursorDotRef = useRef<HTMLDivElement>(null)
   const [isPointer, setIsPointer] = useState(false)
   const [isHidden, setIsHidden] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const mousePosition = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
@@ -26,6 +27,13 @@ export function CustomCursor() {
 
     // Mouse move handler
     const handleMouseMove = (e: MouseEvent) => {
+      if (!isInitialized) {
+        setIsInitialized(true)
+        // Set initial position immediately
+        gsap.set(cursor, { x: e.clientX, y: e.clientY })
+        gsap.set(cursorDot, { x: e.clientX, y: e.clientY })
+      }
+
       mousePosition.current = { x: e.clientX, y: e.clientY }
 
       // Animate cursor with GSAP for smooth follow
@@ -67,18 +75,24 @@ export function CustomCursor() {
     document.body.addEventListener('mouseleave', handleMouseLeave)
     document.body.addEventListener('mouseenter', handleMouseEnter)
 
-    // Hide default cursor
-    document.body.style.cursor = 'none'
+    // Hide default cursor on all elements
+    const style = document.createElement('style')
+    style.innerHTML = `
+      * {
+        cursor: none !important;
+      }
+    `
+    document.head.appendChild(style)
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       document.body.removeEventListener('mouseleave', handleMouseLeave)
       document.body.removeEventListener('mouseenter', handleMouseEnter)
-      document.body.style.cursor = 'auto'
+      document.head.removeChild(style)
     }
-  }, [])
+  }, [isInitialized])
 
-  if (isHidden) return null
+  if (isHidden || !isInitialized) return null
 
   return (
     <>
@@ -91,6 +105,7 @@ export function CustomCursor() {
         style={{
           transform: 'translate(-50%, -50%)',
           mixBlendMode: 'difference',
+          willChange: 'transform',
         }}
       />
       {/* Cursor dot */}
@@ -100,6 +115,7 @@ export function CustomCursor() {
         style={{
           transform: 'translate(-50%, -50%)',
           mixBlendMode: 'difference',
+          willChange: 'transform',
         }}
       />
     </>

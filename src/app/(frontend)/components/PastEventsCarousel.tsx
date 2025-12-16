@@ -38,6 +38,7 @@ interface PastEventsCarouselProps {
 
 export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
@@ -48,7 +49,7 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
     [
       AutoScroll({
         speed: 1,
-        stopOnInteraction: true,
+        stopOnInteraction: !isMobile,
         stopOnMouseEnter: false,
         playOnInit: true,
       }),
@@ -56,8 +57,9 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
   )
 
   // Parallax scroll effect for images (only on desktop)
-  const [isMobile, setIsMobile] = useState(false)
+
   const [hasAnimated, setHasAnimated] = useState(false)
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const checkMobile = () => {
@@ -109,7 +111,16 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
     offset: ['start end', 'end start'],
   })
 
-  const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
+  const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '-10%'])
+
+  // Handle individual image load
+  const handleImageLoad = (index: number) => {
+    setLoadedImages((prev) => {
+      const newSet = new Set(prev)
+      newSet.add(index)
+      return newSet
+    })
+  }
 
   // Wait for images to decode before starting auto-scroll
   useEffect(() => {
@@ -189,6 +200,9 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
           {events.map((event, index) => {
             const firstImage = event.images && event.images.length > 0 ? event.images[0] : null
             const aspectRatio = firstImage?.aspectRatio || 'landscape'
+            const imageIsLoaded = loadedImages.has(index)
+            // Eagerly load first 6 images to ensure smooth animation on scroll
+            const shouldLoadEager = index < 6
 
             return (
               <motion.div
@@ -202,11 +216,17 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
                   typeof firstImage.image === 'object' &&
                   firstImage.image?.url && (
                     <div
-                      className={`${aspectRatioClasses[aspectRatio as keyof typeof aspectRatioClasses] || aspectRatioClasses.landscape} overflow-hidden`}
+                      className={`${aspectRatioClasses[aspectRatio as keyof typeof aspectRatioClasses] || aspectRatioClasses.landscape} overflow-hidden bg-yellow relative`}
                     >
+                      {/* Skeleton loader
+                      {!imageIsLoaded && (
+                        <div className="absolute inset-0 bg-yellow animate-pulse" />
+                      )}
+                      */}
                       <motion.div
                         style={{
-                          y: !isMobile ? imageY : '0%',
+                          y: imageY,
+                          scale: 1.2,
                         }}
                         className="w-full h-full overflow-hidden"
                       >
@@ -222,6 +242,8 @@ export function PastEventsCarousel({ events }: PastEventsCarouselProps) {
                             sizes="(min-width: 1024px) 340px, (min-width: 640px) 300px, 260px"
                             className="w-full h-full object-cover"
                             priority={index < 2}
+                            loading={shouldLoadEager ? 'eager' : 'lazy'}
+                            onLoad={() => handleImageLoad(index)}
                           />
                         </motion.div>
                       </motion.div>
