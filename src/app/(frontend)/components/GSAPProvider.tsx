@@ -37,11 +37,6 @@ export function GSAPProvider({ children }: { children: React.ReactNode }) {
       duration: 0.8,
     })
 
-    // Disable ScrollTrigger markers in production
-    ScrollTrigger.config({
-      markers: false,
-    })
-
     // Refresh on window resize with debounce
     const handleResize = debounce(() => {
       ScrollTrigger.refresh()
