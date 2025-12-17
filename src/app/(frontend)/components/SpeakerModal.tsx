@@ -32,7 +32,7 @@ const scaleAnimation = {
   closed: {
     scale: 0,
     opacity: 0,
-    transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as any },
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as any },
   },
 }
 
@@ -52,39 +52,55 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
       return
     }
 
-    // Move Container
-    const xMoveContainer = gsap.quickTo(modalContainer.current, 'left', {
-      duration: 1,
-      ease: 'power2.out',
-    })
-    const yMoveContainer = gsap.quickTo(modalContainer.current, 'top', {
-      duration: 1,
-      ease: 'power2.out',
-    })
+    // Use quickSetter for better performance - no easing, instant updates
+    const xSetContainer = gsap.quickSetter(modalContainer.current, 'left', 'px')
+    const ySetContainer = gsap.quickSetter(modalContainer.current, 'top', 'px')
+    const xSetCursor = gsap.quickSetter(cursorRef.current, 'left', 'px')
+    const ySetCursor = gsap.quickSetter(cursorRef.current, 'top', 'px')
 
-    // Move cursor
-    const xMoveCursor = gsap.quickTo(cursorRef.current, 'left', {
-      duration: 0.8,
-      ease: 'power2.out',
-    })
-    const yMoveCursor = gsap.quickTo(cursorRef.current, 'top', {
-      duration: 0.8,
-      ease: 'power2.out',
-    })
+    // Track position for smooth interpolation
+    const pos = {
+      containerX: 0,
+      containerY: 0,
+      cursorX: 0,
+      cursorY: 0,
+      targetContainerX: 0,
+      targetContainerY: 0,
+      targetCursorX: 0,
+      targetCursorY: 0,
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
       const { clientX, clientY } = e
-      xMoveContainer(clientX)
-      yMoveContainer(clientY)
-      // Center the cursor (90px / 2 = 45px offset)
-      xMoveCursor(clientX - 45)
-      yMoveCursor(clientY - 45)
+      pos.targetContainerX = clientX
+      pos.targetContainerY = clientY
+      pos.targetCursorX = clientX - 45 // Center the cursor (90px / 2 = 45px offset)
+      pos.targetCursorY = clientY - 45
     }
 
+    // Use requestAnimationFrame for smooth, performant updates
+    let rafId: number
+    const animate = () => {
+      // Lerp for smooth following - faster interpolation for cursor
+      pos.containerX += (pos.targetContainerX - pos.containerX) * 0.15
+      pos.containerY += (pos.targetContainerY - pos.containerY) * 0.15
+      pos.cursorX += (pos.targetCursorX - pos.cursorX) * 0.25
+      pos.cursorY += (pos.targetCursorY - pos.cursorY) * 0.25
+
+      xSetContainer(pos.containerX)
+      ySetContainer(pos.containerY)
+      xSetCursor(pos.cursorX)
+      ySetCursor(pos.cursorY)
+
+      rafId = requestAnimationFrame(animate)
+    }
+
+    rafId = requestAnimationFrame(animate)
     window.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
+      cancelAnimationFrame(rafId)
     }
   }, [])
 
@@ -115,7 +131,7 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
         className="hidden md:block fixed top-0 left-0 w-[300px] h-[200px] pointer-events-none z-[9998] overflow-hidden"
         style={{
           transformOrigin: 'center center',
-          visibility: shouldShow ? 'visible' : 'hidden',
+          willChange: 'left, top, transform, opacity',
         }}
       >
         {speakersWithImages.length > 0 && (
@@ -157,7 +173,7 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
         className="hidden md:flex fixed top-0 left-0 w-[90px] h-[90px] pointer-events-none z-[9999] items-center justify-center"
         style={{
           transformOrigin: 'center center',
-          visibility: shouldShow ? 'visible' : 'hidden',
+          willChange: 'left, top, transform, opacity',
         }}
       >
         <Image
@@ -166,6 +182,7 @@ export default function SpeakerModal({ modal, speakers }: SpeakerModalProps) {
           width={90}
           height={90}
           className="w-full h-full"
+          priority
         />
       </motion.div>
     </>

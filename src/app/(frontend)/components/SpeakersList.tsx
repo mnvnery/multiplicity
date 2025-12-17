@@ -145,7 +145,7 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
                       transform: 'uppercase',
                       leading: 'none',
                     }),
-                    'mb-1 transition-all duration-300 group-hover:opacity-70',
+                    'mb-1 transition-all duration-300 underline',
                   )}
                 >
                   {speaker.studioName}
@@ -159,7 +159,7 @@ export function SpeakersList({ speakers, titleRef }: SpeakersListProps) {
                     weight: 'normal',
                     leading: 'none',
                   }),
-                  'transition-all duration-300 group-hover:opacity-70',
+                  'transition-all duration-300',
                 )}
               >
                 {speaker.names}

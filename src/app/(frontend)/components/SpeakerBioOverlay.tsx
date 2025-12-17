@@ -203,13 +203,21 @@ export function SpeakerBioOverlay({
 
       const rect = overlayRef.current.getBoundingClientRect()
       const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
       const width = rect.width
-      const third = width / 3
+      const height = rect.height
+      const edgeZone = width * 0.1 // 10% on each side for prev/next (more peripheral)
+      const topRightCornerSize = Math.min(width, height) * 0.15 // 15% corner area
+
+      // Check if in top-right corner first (priority area for close)
+      const isInTopRightCorner = x > width - topRightCornerSize && y < topRightCornerSize
 
       // Still determine cursor area even when over links, so we can show scaled-down cursor
-      if (x < third) {
+      if (isInTopRightCorner) {
+        setCursorArea('center') // Use center to show close cursor
+      } else if (x < edgeZone) {
         setCursorArea('left')
-      } else if (x > third * 2) {
+      } else if (x > width - edgeZone) {
         setCursorArea('right')
       } else {
         setCursorArea('center')
@@ -225,12 +233,20 @@ export function SpeakerBioOverlay({
 
       const rect = overlayRef.current.getBoundingClientRect()
       const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
       const width = rect.width
-      const third = width / 3
+      const height = rect.height
+      const edgeZone = width * 0.1 // 10% on each side for prev/next (more peripheral)
+      const topRightCornerSize = Math.min(width, height) * 0.15 // 15% corner area
 
-      if (x < third) {
+      // Check if in top-right corner first (priority area for close)
+      const isInTopRightCorner = x > width - topRightCornerSize && y < topRightCornerSize
+
+      if (isInTopRightCorner) {
+        onClose()
+      } else if (x < edgeZone) {
         handlePrev()
-      } else if (x > third * 2) {
+      } else if (x > width - edgeZone) {
         handleNext()
       } else {
         onClose()
@@ -284,7 +300,7 @@ export function SpeakerBioOverlay({
           style={{ backgroundColor: '#BFA9FF', cursor: getCursorStyle() }}
         >
           {/* Mobile Navigation Controls */}
-          <div className="md:hidden fixed top-0 left-0 right-0 z-[10001] flex justify-between items-center px-0 pt-2 pb-0 bg-[#BFA9FF]">
+          <div className="md:hidden absolute top-0 left-0 right-0 z-[10001] flex justify-between items-center px-0 pt-2 pb-0 bg-[#BFA9FF]">
             <div className="flex items-center gap-4">
               <button onClick={handlePrev} className="p-2" aria-label="Previous speaker">
                 <IoIosArrowBack className="w-9 h-9" />
