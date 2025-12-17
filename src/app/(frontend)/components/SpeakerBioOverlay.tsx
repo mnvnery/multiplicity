@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react'
 import Image from 'next/image'
 import { IoIosArrowBack, IoIosArrowForward, IoIosClose } from 'react-icons/io'
@@ -118,6 +119,7 @@ export function SpeakerBioOverlay({
   onNext,
   onPrev,
 }: SpeakerBioOverlayProps) {
+  const [mounted, setMounted] = useState(false)
   const [cursorArea, setCursorArea] = useState<'left' | 'center' | 'right' | null>(null)
   const [isOverLink, setIsOverLink] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -125,6 +127,11 @@ export function SpeakerBioOverlay({
   const prevIndexRef = useRef(currentIndex)
   const lastNavigationDirectionRef = useRef<'next' | 'prev'>('next')
   const [shouldAnimateText, setShouldAnimateText] = useState(false)
+
+  // Ensure we only render on the client
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Smooth spring animations for cursor position
   const cursorX = useMotionValue(0)
@@ -271,11 +278,11 @@ export function SpeakerBioOverlay({
   }
 
   // Early return check after all hooks
-  if (!currentSpeaker) {
+  if (!currentSpeaker || !mounted) {
     return null
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -563,6 +570,7 @@ export function SpeakerBioOverlay({
           </AnimatePresence>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
