@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react'
+import useEmblaCarousel from 'embla-carousel-react'
+import AutoHeight from 'embla-carousel-auto-height'
 import Image from 'next/image'
 import { IoIosArrowBack, IoIosArrowForward, IoIosClose } from 'react-icons/io'
 import { textVariants, cn } from '../lib/variants'
@@ -124,9 +126,21 @@ export function SpeakerBioOverlay({
   const [isOverLink, setIsOverLink] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
   const prevIsOpenRef = useRef<boolean | null>(null)
-  const prevIndexRef = useRef(currentIndex)
-  const lastNavigationDirectionRef = useRef<'next' | 'prev'>('next')
   const [shouldAnimateText, setShouldAnimateText] = useState(false)
+
+  // Embla Carousel setup
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: 'start',
+      skipSnaps: false,
+      dragFree: false,
+      containScroll: false,
+      duration: 25, // Slower base duration for smoother feel
+      watchDrag: typeof window !== 'undefined' && window.innerWidth < 768, // Enable drag only on mobile
+    },
+    [AutoHeight()], // Auto-adjust height to match each slide's content
+  )
 
   // Ensure we only render on the client
   useEffect(() => {
@@ -147,44 +161,84 @@ export function SpeakerBioOverlay({
       : null
   const imageUrl = imageData?.url
 
-  // Track if we should animate text (only on open/close, not navigation)
-  const isNavigating =
-    isOpen &&
-    prevIsOpenRef.current !== null &&
-    prevIsOpenRef.current &&
-    prevIndexRef.current !== currentIndex
+  // Custom scroll function with controllable animation duration for smoother transitions
+  const scrollToWithDuration = useCallback(
+    (targetIndex: number, duration: number = 600) => {
+      if (!emblaApi) return
 
-  // Wrapped callbacks to track navigation direction
+      const container = emblaApi.rootNode().querySelector('.embla__container') as HTMLElement
+      if (!container) {
+        emblaApi.scrollTo(targetIndex)
+        return
+      }
+
+      const startScroll = container.scrollLeft
+      const startTime = performance.now()
+
+      // Scroll immediately to target to measure target position, then animate
+      emblaApi.scrollTo(targetIndex)
+      const targetScroll = container.scrollLeft
+
+      // Reset and animate
+      container.scrollLeft = startScroll
+
+      // Animate with smooth easing
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+
+        // Smooth ease-in-out function
+        const ease =
+          progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+
+        container.scrollLeft = startScroll + (targetScroll - startScroll) * ease
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          // Final snap to ensure alignment
+          emblaApi.scrollTo(targetIndex)
+        }
+      }
+
+      requestAnimationFrame(animate)
+    },
+    [emblaApi],
+  )
+
+  // Wrapped callbacks to control embla carousel with smooth animations
   const handleNext = useCallback(() => {
-    lastNavigationDirectionRef.current = 'next'
+    if (!emblaApi) return
+    const nextIndex = emblaApi.selectedScrollSnap() + 1
+    scrollToWithDuration(nextIndex, 600) // 600ms duration for smooth transition
     onNext()
-  }, [onNext])
+  }, [emblaApi, onNext, scrollToWithDuration])
 
   const handlePrev = useCallback(() => {
-    lastNavigationDirectionRef.current = 'prev'
+    if (!emblaApi) return
+    const prevIndex = emblaApi.selectedScrollSnap() - 1
+    scrollToWithDuration(prevIndex, 600) // 600ms duration for smooth transition
     onPrev()
-  }, [onPrev])
+  }, [emblaApi, onPrev, scrollToWithDuration])
 
-  // Determine if we're navigating and use the tracked direction
-  const navigationDirection = isNavigating ? lastNavigationDirectionRef.current : 'next'
+  // Sync embla carousel with currentIndex
+  useEffect(() => {
+    if (emblaApi && isOpen) {
+      emblaApi.scrollTo(currentIndex, false)
+    }
+  }, [emblaApi, currentIndex, isOpen])
 
+  // Track opening/closing for text animations
   useEffect(() => {
     const isOpeningOrClosing = prevIsOpenRef.current !== isOpen
 
     if (isOpeningOrClosing) {
       // Opening or closing - enable animations
-      setShouldAnimateText(true)
-    } else if (isOpen && prevIndexRef.current !== currentIndex) {
-      // Navigating - disable animations and update index
-      setShouldAnimateText(false)
-      prevIndexRef.current = currentIndex
-    } else if (isOpen) {
-      // Already open and not navigating - keep animations disabled
-      setShouldAnimateText(false)
+      setShouldAnimateText(isOpen)
     }
 
     prevIsOpenRef.current = isOpen
-  }, [isOpen, currentIndex])
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -303,7 +357,7 @@ export function SpeakerBioOverlay({
             duration: 0.8,
             ease: [0.4, 0, 0.2, 1],
           }}
-          className="fixed inset-0 z-[10000] overflow-y-auto"
+          className="fixed inset-0 z-[10000] overflow-y-auto overflow-x-hidden overscroll-contain"
           style={{ backgroundColor: '#BFA9FF', cursor: getCursorStyle() }}
         >
           {/* Mobile Navigation Controls */}
@@ -351,223 +405,232 @@ export function SpeakerBioOverlay({
             </motion.div>
           )}
 
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={currentIndex}
-              initial={{
-                opacity: 0,
-                x: isNavigating ? (navigationDirection === 'next' ? 100 : -100) : 0,
-              }}
-              animate={{
-                opacity: 1,
-                x: 0,
-              }}
-              exit={{
-                opacity: 0,
-                x: isNavigating ? (navigationDirection === 'next' ? -100 : 100) : 0,
-              }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              className="max-w-8xl mx-auto px-4 md:px-8 pt-20 md:pt-12 pb-10 md:pb-12"
-            >
-              <div className="grid md:grid-cols-2 gap-10 md:gap-20">
-                {/* Left side - Images */}
-                <div className="space-y-8">
-                  {imageUrl &&
-                    (shouldAnimateText ? (
-                      <AnimatePresence mode="wait">
-                        {isOpen && (
-                          <motion.div
-                            key={`image-${isOpen}`}
-                            initial={{ opacity: 0, rotate: 5 }}
-                            animate={{ opacity: 1, rotate: 0 }}
-                            exit={{ opacity: 0, rotate: 5 }}
-                            transition={{
-                              duration: 0.8,
-                              ease: [0.4, 0, 0.2, 1],
-                              delay: 0.2,
-                            }}
-                            className="relative w-full aspect-[3/2]"
-                          >
-                            <Image
-                              src={imageUrl}
-                              alt={currentSpeaker.names || 'Speaker'}
-                              fill
-                              className="object-top object-cover"
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    ) : (
-                      <div className="relative w-full aspect-[3/2]">
-                        <Image
-                          key={currentIndex}
-                          src={imageUrl}
-                          alt={currentSpeaker.names || 'Speaker'}
-                          fill
-                          className="object-top object-cover"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                      </div>
-                    ))}
-                  {shouldAnimateText ? (
-                    <AnimatePresence mode="wait">
-                      {isOpen && (
-                        <motion.div
-                          key={`names-${isOpen}`}
-                          initial={{ opacity: 0, x: -50 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -50 }}
-                          transition={{
-                            duration: 0.6,
-                            ease: [0.4, 0, 0.2, 1],
-                            delay: 0.3,
-                          }}
-                          className="space-y-0"
-                        >
-                          {currentSpeaker.studioName && (
-                            <p
-                              className={cn(
-                                textVariants({
-                                  size: '4xl',
-                                  font: 'oldman',
-                                  weight: 'bold',
-                                  transform: 'uppercase',
-                                  leading: 'none',
-                                }),
-                              )}
-                            >
-                              {currentSpeaker.studioName}
-                            </p>
-                          )}
-                          <p
-                            className={cn(
-                              textVariants({
-                                size: '3xl',
-                                font: 'oldman',
-                                weight: 'normal',
-                                leading: 'none',
-                              }),
-                            )}
-                          >
-                            {currentSpeaker.names}
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  ) : (
-                    isOpen && (
-                      <div className="space-y-0">
-                        {currentSpeaker.studioName && (
-                          <p
-                            className={cn(
-                              textVariants({
-                                size: '4xl',
-                                font: 'oldman',
-                                weight: 'bold',
-                                transform: 'uppercase',
-                                leading: 'none',
-                              }),
-                            )}
-                          >
-                            {currentSpeaker.studioName}
-                          </p>
-                        )}
-                        <p
-                          className={cn(
-                            textVariants({
-                              size: '3xl',
-                              font: 'oldman',
-                              weight: 'normal',
-                            }),
-                          )}
-                        >
-                          {currentSpeaker.names}
-                        </p>
-                      </div>
-                    )
-                  )}
-                  {currentSpeaker.socials &&
-                    (shouldAnimateText ? (
-                      <AnimatePresence mode="wait">
-                        {isOpen && (
-                          <motion.div
-                            key={`socials-${isOpen}`}
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -50 }}
-                            transition={{
-                              duration: 0.6,
-                              ease: [0.4, 0, 0.2, 1],
-                              delay: 0.4,
-                            }}
-                            className={cn(
-                              textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-                            )}
-                          >
-                            {renderRichText(currentSpeaker.socials)}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    ) : (
-                      isOpen && (
-                        <div
-                          className={cn(
-                            textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-                          )}
-                        >
-                          {renderRichText(currentSpeaker.socials)}
-                        </div>
-                      )
-                    ))}
-                </div>
+          {/* Embla Carousel */}
+          <div className="overflow-hidden transition-[height] duration-300" ref={emblaRef}>
+            <div className="flex items-start embla__container">
+              {speakers.map((speaker, index) => {
+                const speakerImageData =
+                  speaker && typeof speaker.image === 'object' && speaker.image !== null
+                    ? speaker.image
+                    : null
+                const speakerImageUrl = speakerImageData?.url
 
-                {/* Right side - Bio */}
-                {shouldAnimateText ? (
-                  <AnimatePresence mode="wait">
-                    {isOpen && (
-                      <motion.div
-                        key={`bio-${isOpen}`}
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 50 }}
-                        transition={{
-                          duration: 0.6,
-                          ease: [0.4, 0, 0.2, 1],
-                          delay: 0.35,
-                        }}
-                        className={cn(
-                          textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-                          'whitespace-pre-line',
-                        )}
-                      >
-                        {currentSpeaker.bio ? (
-                          renderRichText(currentSpeaker.bio)
+                return (
+                  <div
+                    key={index}
+                    className="flex-[0_0_100%] min-w-0"
+                    style={{ userSelect: 'none' }}
+                  >
+                    <div className="max-w-8xl mx-auto px-4 md:px-8 pt-20 md:pt-12 pb-10 md:pb-12">
+                      <div className="grid md:grid-cols-2 gap-10 md:gap-20 items-start">
+                        {/* Left side - Images */}
+                        <div className="space-y-8">
+                          {speakerImageUrl &&
+                            (shouldAnimateText ? (
+                              <AnimatePresence mode="wait">
+                                {isOpen && (
+                                  <motion.div
+                                    key={`image-${isOpen}`}
+                                    initial={{ opacity: 0, rotate: 5 }}
+                                    animate={{ opacity: 1, rotate: 0 }}
+                                    exit={{ opacity: 0, rotate: 5 }}
+                                    transition={{
+                                      duration: 0.8,
+                                      ease: [0.4, 0, 0.2, 1],
+                                      delay: 0.2,
+                                    }}
+                                    className="relative w-full aspect-[3/2]"
+                                  >
+                                    <Image
+                                      src={speakerImageUrl}
+                                      alt={speaker.names || 'Speaker'}
+                                      fill
+                                      className="object-top object-cover"
+                                      sizes="(max-width: 768px) 100vw, 50vw"
+                                    />
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            ) : (
+                              <div className="relative w-full aspect-[3/2]">
+                                <Image
+                                  src={speakerImageUrl}
+                                  alt={speaker.names || 'Speaker'}
+                                  fill
+                                  className="object-top object-cover"
+                                  sizes="(max-width: 768px) 100vw, 50vw"
+                                />
+                              </div>
+                            ))}
+                          {shouldAnimateText ? (
+                            <AnimatePresence mode="wait">
+                              {isOpen && (
+                                <motion.div
+                                  key={`names-${isOpen}`}
+                                  initial={{ opacity: 0, x: -50 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -50 }}
+                                  transition={{
+                                    duration: 0.6,
+                                    ease: [0.4, 0, 0.2, 1],
+                                    delay: 0.3,
+                                  }}
+                                  className="space-y-0"
+                                >
+                                  {speaker.studioName && (
+                                    <p
+                                      className={cn(
+                                        textVariants({
+                                          size: '4xl',
+                                          font: 'oldman',
+                                          weight: 'bold',
+                                          transform: 'uppercase',
+                                          leading: 'none',
+                                        }),
+                                      )}
+                                    >
+                                      {speaker.studioName}
+                                    </p>
+                                  )}
+                                  <p
+                                    className={cn(
+                                      textVariants({
+                                        size: '3xl',
+                                        font: 'oldman',
+                                        weight: 'normal',
+                                        leading: 'none',
+                                      }),
+                                    )}
+                                  >
+                                    {speaker.names}
+                                  </p>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          ) : (
+                            <div className="space-y-0">
+                              {speaker.studioName && (
+                                <p
+                                  className={cn(
+                                    textVariants({
+                                      size: '4xl',
+                                      font: 'oldman',
+                                      weight: 'bold',
+                                      transform: 'uppercase',
+                                      leading: 'none',
+                                    }),
+                                  )}
+                                >
+                                  {speaker.studioName}
+                                </p>
+                              )}
+                              <p
+                                className={cn(
+                                  textVariants({
+                                    size: '3xl',
+                                    font: 'oldman',
+                                    weight: 'normal',
+                                    leading: 'none',
+                                  }),
+                                )}
+                              >
+                                {speaker.names}
+                              </p>
+                            </div>
+                          )}
+                          {speaker.socials &&
+                            (shouldAnimateText ? (
+                              <AnimatePresence mode="wait">
+                                {isOpen && (
+                                  <motion.div
+                                    key={`socials-${isOpen}`}
+                                    initial={{ opacity: 0, x: -50 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -50 }}
+                                    transition={{
+                                      duration: 0.6,
+                                      ease: [0.4, 0, 0.2, 1],
+                                      delay: 0.4,
+                                    }}
+                                    className={cn(
+                                      textVariants({
+                                        size: 'sm',
+                                        font: 'ufficio',
+                                        transform: 'uppercase',
+                                      }),
+                                    )}
+                                  >
+                                    {renderRichText(speaker.socials)}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            ) : (
+                              <div
+                                className={cn(
+                                  textVariants({
+                                    size: 'sm',
+                                    font: 'ufficio',
+                                    transform: 'uppercase',
+                                  }),
+                                )}
+                              >
+                                {renderRichText(speaker.socials)}
+                              </div>
+                            ))}
+                        </div>
+
+                        {/* Right side - Bio */}
+                        {shouldAnimateText ? (
+                          <AnimatePresence mode="wait">
+                            {isOpen && (
+                              <motion.div
+                                key={`bio-${isOpen}`}
+                                initial={{ opacity: 0, x: 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 50 }}
+                                transition={{
+                                  duration: 0.6,
+                                  ease: [0.4, 0, 0.2, 1],
+                                  delay: 0.35,
+                                }}
+                                className={cn(
+                                  textVariants({
+                                    size: 'sm',
+                                    font: 'ufficio',
+                                    transform: 'uppercase',
+                                  }),
+                                  'whitespace-pre-line',
+                                )}
+                              >
+                                {speaker.bio ? (
+                                  renderRichText(speaker.bio)
+                                ) : (
+                                  <p>No bio available.</p>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         ) : (
-                          <p>No bio available.</p>
+                          <div
+                            className={cn(
+                              textVariants({
+                                size: 'sm',
+                                font: 'ufficio',
+                                transform: 'uppercase',
+                              }),
+                              'whitespace-pre-line',
+                            )}
+                          >
+                            {speaker.bio ? renderRichText(speaker.bio) : <p>No bio available.</p>}
+                          </div>
                         )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                ) : (
-                  isOpen && (
-                    <div
-                      className={cn(
-                        textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-                        'whitespace-pre-line',
-                      )}
-                    >
-                      {currentSpeaker.bio ? (
-                        renderRichText(currentSpeaker.bio)
-                      ) : (
-                        <p>No bio available.</p>
-                      )}
+                      </div>
                     </div>
-                  )
-                )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>,
