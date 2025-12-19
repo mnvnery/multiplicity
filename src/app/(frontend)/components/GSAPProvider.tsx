@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { usePathname } from 'next/navigation'
+import { useLenis } from 'lenis/react'
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
@@ -24,6 +25,7 @@ function debounce<T extends (...args: any[]) => any>(
 
 export function GSAPProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const lenis = useLenis()
 
   useEffect(() => {
     // Refresh ScrollTrigger on route change
@@ -37,6 +39,29 @@ export function GSAPProvider({ children }: { children: React.ReactNode }) {
       duration: 0.8,
     })
 
+    // Configure ScrollTrigger
+    ScrollTrigger.defaults({
+      markers: false,
+    })
+
+    // Only integrate if Lenis is available
+    if (!lenis) {
+      ScrollTrigger.refresh()
+      return
+    }
+
+    // Sync Lenis scroll with ScrollTrigger
+    // ReactLenis already handles RAF internally, we just need to update ScrollTrigger
+    const unsubscribe = lenis.on('scroll', ScrollTrigger.update)
+
+    // Disable lag smoothing for smoother integration
+    gsap.ticker.lagSmoothing(0)
+
+    // Give Lenis a moment to initialize, then refresh ScrollTrigger
+    const timeoutId = setTimeout(() => {
+      ScrollTrigger.refresh()
+    }, 200)
+
     // Refresh on window resize with debounce
     const handleResize = debounce(() => {
       ScrollTrigger.refresh()
@@ -45,11 +70,13 @@ export function GSAPProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('resize', handleResize)
 
     return () => {
+      clearTimeout(timeoutId)
       window.removeEventListener('resize', handleResize)
+      if (unsubscribe) unsubscribe()
       // Clean up all ScrollTriggers on unmount
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
     }
-  }, [])
+  }, [lenis])
 
   return <>{children}</>
 }

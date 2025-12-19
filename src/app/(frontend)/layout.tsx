@@ -40,11 +40,11 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ufficioFont.variable} ${oldmanFont.variable}`}>
       <body>
-        <GSAPProvider>
-          <LenisProvider>
+        <LenisProvider>
+          <GSAPProvider>
             <main>{children}</main>
-          </LenisProvider>
-        </GSAPProvider>
+          </GSAPProvider>
+        </LenisProvider>
       </body>
     </html>
   )

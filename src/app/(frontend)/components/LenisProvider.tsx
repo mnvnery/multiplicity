@@ -5,11 +5,15 @@ import type { LenisOptions } from 'lenis'
 import { useEffect } from 'react'
 
 const lenisOptions: LenisOptions = {
-  duration: 1.2,
+  duration: 1.0,
   easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
   smoothWheel: true,
   wheelMultiplier: 1,
+  touchMultiplier: 2,
+  infinite: false,
   syncTouch: false,
+  // Improves performance by reducing updates
+  lerp: 0.1,
 }
 
 function AnchorLinkHandler() {
