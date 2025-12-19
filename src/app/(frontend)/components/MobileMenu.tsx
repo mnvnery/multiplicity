@@ -47,6 +47,26 @@ export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
     setIsMounted(true)
   }, [])
 
+  // Prevent background scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position and lock scroll
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.overflow = 'hidden'
+      document.body.style.paddingRight = `${scrollbarWidth}px`
+    } else {
+      // Restore scroll
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
+  }, [isOpen])
+
   // GSAP mask reveal and content stagger animations
   useEffect(() => {
     if (!menuRef.current || !navItemsRef.current) return
