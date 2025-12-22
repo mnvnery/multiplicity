@@ -29,11 +29,11 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
   // Scroll-triggered animations for mailing section
   const { scrollYProgress: mailingProgress } = useScroll({
     target: mailingRef,
-    offset: ['start 0.8', 'start 0.3'],
+    offset: ['start end', 'start 0.7'],
   })
 
-  const mailingOpacity = useTransform(mailingProgress, [0, 0.5], [0, 1])
-  const mailingY = useTransform(mailingProgress, [0, 0.5], [50, 0])
+  const mailingOpacity = useTransform(mailingProgress, [0, 1], [0, 1])
+  const mailingY = useTransform(mailingProgress, [0, 1], [50, 0])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -80,11 +80,11 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
   // Scroll-triggered animations for footer
   const { scrollYProgress: footerProgress } = useScroll({
     target: footerRef,
-    offset: ['start 0.8', 'start 0.3'],
+    offset: ['start end', 'start 0.7'],
   })
 
-  const footerOpacity = useTransform(footerProgress, [0, 0.5], [0, 1])
-  const footerY = useTransform(footerProgress, [0, 0.5], [30, 0])
+  const footerOpacity = useTransform(footerProgress, [0, 1], [0, 1])
+  const footerY = useTransform(footerProgress, [0, 1], [30, 0])
 
   return (
     <>
