@@ -16,6 +16,7 @@ if (typeof window !== 'undefined') {
 interface NextEvent {
   title: string
   date: string
+  host?: any // richText from Lexical
   location?: {
     address?: string | null
     addressLink?: string | null
@@ -57,8 +58,32 @@ const renderRichText = (lexical: any): React.ReactNode => {
         </p>
       )
     }
+    if (node.type === 'linebreak') {
+      return <br key={index} />
+    }
     if (node.type === 'text') {
       const text = node.text || ''
+      // Split text by newlines and render with breaks
+      const parts = text.split('\n')
+      if (parts.length > 1) {
+        return (
+          <React.Fragment key={index}>
+            {parts.map((part: string, i: number) => {
+              let content: React.ReactNode = part
+              if (node.format) {
+                if (node.format & 1) content = <strong>{content}</strong> // bold
+                if (node.format & 2) content = <em>{content}</em> // italic
+              }
+              return (
+                <React.Fragment key={i}>
+                  {i > 0 && <br />}
+                  {content}
+                </React.Fragment>
+              )
+            })}
+          </React.Fragment>
+        )
+      }
       if (node.format) {
         let content: React.ReactNode = text
         if (node.format & 1) content = <strong key={index}>{content}</strong> // bold
@@ -71,7 +96,7 @@ const renderRichText = (lexical: any): React.ReactNode => {
       return (
         <a
           key={index}
-          href={node.url}
+          href={node.url || node.fields?.url}
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:opacity-70"
@@ -225,6 +250,16 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
               )
             })()}
           </p>
+          {nextEvent.host && (
+            <div
+              className={cn(
+                textVariants({ size: '2xl', font: 'oldman', weight: 'normal', leading: 'none' }),
+                'mb-6',
+              )}
+            >
+              {renderRichText(nextEvent.host)}
+            </div>
+          )}
           <div className="text-base leading-relaxed">
             {nextEvent.location?.address && (
               <p className="font-ufficio uppercase whitespace-pre-line"></p>

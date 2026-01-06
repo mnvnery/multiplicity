@@ -178,6 +178,24 @@ export interface Event {
   ticketUrl?: string | null;
   status: 'upcoming' | 'past';
   date: string;
+  /**
+   * Optional host information (e.g., "HOSTED BY ELIZA WILLIAMS - EDITOR OF CREATIVE REVIEW")
+   */
+  host?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   location?: {
     address?: string | null;
     addressLink?: string | null;
@@ -384,6 +402,7 @@ export interface EventsSelect<T extends boolean = true> {
   ticketUrl?: T;
   status?: T;
   date?: T;
+  host?: T;
   location?:
     | T
     | {

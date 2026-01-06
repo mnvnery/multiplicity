@@ -213,12 +213,17 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
                   <p>WA3 2BP</p>
                   <p>UNITED KINGDOM</p>
                   <div className="flex flex-col gap-1 mt-4">
-                    <p>+44 (0) 1942 262622</p>
                     <a
-                      href="mailto:HELLO@FOILCO.CO.UK"
+                      href="tel:+441942262622"
                       className="underline hover:text-yellow transition-opacity"
                     >
-                      HELLO@FOILCO.CO.UK
+                      +44 (0) 1942 262622
+                    </a>
+                    <a
+                      href="mailto:HELLO@FOILCO.COM"
+                      className="underline hover:text-yellow transition-opacity"
+                    >
+                      HELLO@FOILCO.COM
                     </a>
                   </div>
                 </div>

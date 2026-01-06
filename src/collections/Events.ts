@@ -46,6 +46,14 @@ export const Events: CollectionConfig = {
       },
     },
     {
+      name: 'host',
+      type: 'richText',
+      admin: {
+        description:
+          'Optional host information (e.g., "HOSTED BY ELIZA WILLIAMS - EDITOR OF CREATIVE REVIEW")',
+      },
+    },
+    {
       name: 'location',
       type: 'group',
       fields: [
