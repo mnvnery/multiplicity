@@ -89,6 +89,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/seed ./seed
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Copy migration script for host column
+COPY add-host-column.js /app/add-host-column.js
+RUN chmod +x /app/add-host-column.js
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
