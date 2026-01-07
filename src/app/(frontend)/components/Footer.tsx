@@ -114,7 +114,7 @@ export function Footer({ socialLinks, name, email }: FooterProps) {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-xl mx-auto">
             <input
               type="text"
-              placeholder="JOHN SMITH"
+              placeholder="YOUR NAME"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               required
