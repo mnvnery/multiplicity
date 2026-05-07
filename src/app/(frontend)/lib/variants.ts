@@ -67,7 +67,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-white text-black border-3 border-black',
-        secondary: 'bg-black text-yellow border-3 border-black hover:bg-yellow hover:text-black',
+        secondary: 'bg-black text-white border-3 border-black hover:bg-yellow hover:text-black',
         tertiary: 'bg-yellow text-black border-3 border-black hover:bg-pink hover:text-black',
         outline: 'bg-transparent text-black border-3 border-black hover:bg-black hover:text-yellow',
         link: 'bg-transparent text-black underline hover:opacity-70',

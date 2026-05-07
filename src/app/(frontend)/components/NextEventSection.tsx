@@ -115,14 +115,19 @@ const renderRichText = (lexical: any): React.ReactNode => {
 }
 
 interface NextEventSectionProps {
-  nextEvent: NextEvent
+  nextEvent: NextEvent | null | undefined
+  isEventPast?: boolean
 }
 
-export function NextEventSection({ nextEvent }: NextEventSectionProps) {
+export function NextEventSection({ nextEvent, isEventPast }: NextEventSectionProps) {
   const titleRef = useRef<HTMLDivElement | null>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [hasAnimated, setHasAnimated] = useState(false)
+  const [formName, setFormName] = useState('')
+  const [formEmail, setFormEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
 
   // Scroll-triggered animations
   const { scrollYProgress } = useScroll({
@@ -195,186 +200,455 @@ export function NextEventSection({ nextEvent }: NextEventSectionProps) {
           className="w-full h-auto"
         />
       </div>
-      <motion.div
-        className="md:grid grid-cols-2 gap-10 md:mt-20"
-        style={{
-          opacity: contentOpacity,
-          y: contentY,
-        }}
-      >
-        <div className="mb-8">
-          <h3
-            className={cn(
-              textVariants({
-                size: '6xl',
-                font: 'oldman',
-                weight: 'bold',
-                transform: 'uppercase',
-                leading: 'under',
-              }),
-            )}
-          >
-            {nextEvent.title}
-          </h3>
-          <p
-            className={cn(
-              textVariants({
-                size: '6xl',
-                font: 'oldman',
-                weight: 'bold',
-                transform: 'uppercase',
-                leading: 'under',
-              }),
-              'mb-8',
-            )}
-          >
-            {(() => {
-              const date = new Date(nextEvent.date)
-              const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
-              const day = date.getDate()
-              const year = date.getFullYear()
 
-              // Add ordinal suffix to day
-              const getOrdinal = (n: number) => {
-                const s = ['TH', 'ST', 'ND', 'RD']
-                const v = n % 100
-                return n + (s[(v - 20) % 10] || s[v] || s[0])
-              }
-
-              return (
-                <>
-                  {month} {getOrdinal(day)}
-                  <br />
-                  {year}
-                </>
-              )
-            })()}
-          </p>
-          {nextEvent.host && (
-            <div
+      {isEventPast || !nextEvent ? (
+        <>
+        <motion.div
+          className="md:grid grid-cols-2 gap-10 md:mt-20 mb-10 md:mb-20"
+          style={{ opacity: contentOpacity, y: contentY }}
+        >
+          <div className="mb-8">
+            <h3
               className={cn(
-                textVariants({ size: '2xl', font: 'oldman', weight: 'normal', leading: 'none' }),
-                'mb-6',
+                textVariants({
+                  size: '6xl',
+                  font: 'oldman',
+                  weight: 'bold',
+                  transform: 'uppercase',
+                  leading: 'under',
+                }),
               )}
             >
-              {renderRichText(nextEvent.host)}
-            </div>
-          )}
-          <div className="text-base leading-relaxed">
-            {nextEvent.location?.address && (
-              <p className="font-ufficio uppercase whitespace-pre-line"></p>
-            )}
-            {nextEvent.location?.addressLink && (
-              <a
-                href={nextEvent.location.addressLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  textVariants({ size: 'lg', font: 'ufficio', transform: 'uppercase' }),
-                  'whitespace-pre-line mt-2.5 opacity-100 hover:underline transition-opacity',
-                )}
-              >
-                {nextEvent.location.address}
-              </a>
-            )}
+              COMING SOON
+            </h3>
+            <p
+              className={cn(
+                textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
+                'mt-4',
+              )}
+            >
+              DETAILS WILL BE ANNOUNCED HERE
+              <br />
+              AS THEY BECOME AVAILABLE
+            </p>
           </div>
-        </div>
-        <div>
-          {nextEvent.speakers && nextEvent.speakers.length > 0 && (
-            <SpeakersList speakers={nextEvent.speakers} titleRef={titleRef} />
-          )}
-        </div>
-      </motion.div>
-      {nextEvent.description && (
-        <div className="my-10 md:my-14 text-center">
-          <button
-            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-            className={cn(
-              textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-              'hover:opacity-70 transition-opacity cursor-pointer underline',
-            )}
-          >
-            {isDescriptionExpanded ? 'LESS INFORMATION' : 'MORE INFORMATION'}
-          </button>
-          <AnimatePresence>
-            {isDescriptionExpanded && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden mt-6"
-              >
+          <div className='max-w-2xl md:pl-5'>
+            <p
+              className={cn(
+                textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                'mb-6 text-balance',
+              )}
+            >
+              TO BE THE FIRST TO KNOW ABOUT NEW MULTIPLICITY EVENTS, SIGN UP TO OUR MAILING LIST,
+              WE PROMISE NOT TO SPAM.
+            </p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                setIsSubmitting(true)
+                setSubmitStatus({ type: null, message: '' })
+                try {
+                  const response = await fetch('/api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: formName, email: formEmail }),
+                  })
+                  const data = await response.json()
+                  if (!response.ok) {
+                    setSubmitStatus({ type: 'error', message: data.error || 'Failed to subscribe. Please try again.' })
+                  } else {
+                    setSubmitStatus({ type: 'success', message: 'Thanks for subscribing!' })
+                    setFormName('')
+                    setFormEmail('')
+                  }
+                } catch {
+                  setSubmitStatus({ type: 'error', message: 'An error occurred. Please try again later.' })
+                } finally {
+                  setIsSubmitting(false)
+                }
+              }}
+              className="flex flex-col gap-4"
+            >
+              <input
+                type="text"
+                placeholder="YOUR NAME"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                required
+                disabled={isSubmitting}
+                className={cn(
+                  'bg-yellow border-3 border-black text-black px-4 py-3',
+                  textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
+                  'placeholder:text-black/50 focus:outline-none focus:ring-2 focus:ring-black',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              />
+              <input
+                type="email"
+                placeholder="YOUR@EMAILADDRESS.COM"
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
+                required
+                disabled={isSubmitting}
+                className={cn(
+                  'bg-yellow border-3 border-black text-black px-4 py-3',
+                  textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
+                  'placeholder:text-black/50 focus:outline-none focus:ring-2 focus:ring-black',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              />
+              {submitStatus.type && (
                 <div
                   className={cn(
-                    textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
-                    'max-w-4xl mx-auto text-left md:text-center px-2.5 md:px-0 mt-5 md:mt-10',
+                    textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                    submitStatus.type === 'success' ? 'text-black' : 'text-red-600',
                   )}
                 >
-                  {renderRichText(nextEvent.description)}
+                  {submitStatus.message}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-      {nextEvent.ticketUrl && (
-        <SofterButton
-          as="a"
-          href={nextEvent.ticketUrl}
-          className={cn(
-            buttonVariants({ variant: 'primary', size: '3xl', width: 'full' }),
-            'block text-center',
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          BUY TICKETS
-        </SofterButton>
-      )}
-      {/* Event Sponsors Section */}
-      {nextEvent.sponsors && nextEvent.sponsors.length > 0 && (
-        <>
-          <div
-            className={cn(
-              textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
-              'text-center hover:opacity-70 transition-opacity cursor-pointer mt-20',
-            )}
-          >
-            WITH THANKS TO OUR SPONSORS
+              )}
+              <SofterButton
+                type="submit"
+                disabled={isSubmitting}
+                className={cn(
+                  'bg-black text-yellow border border-black px-4 py-3',
+                  buttonVariants({ size: 'xl', variant: 'primary' }),
+                  '!fl-py-2/1.5 hover:opacity-90 transition-opacity',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              >
+                {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
+              </SofterButton>
+            </form>
           </div>
-          <div className="flex flex-wrap justify-center gap-10 mb-10 md:mb-0">
-            {nextEvent.sponsors.map((sponsor, index) => {
-              const imageData =
-                typeof sponsor.image === 'object' && sponsor.image !== null ? sponsor.image : null
-              const imageUrl = imageData?.url
-              if (!imageUrl) return null
+        </motion.div>
 
-              return (
-                <motion.div
-                  key={sponsor.id || Math.random()}
-                  className="w-full max-w-xs w-[325px] h-auto md:h-[325px]"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-50px' }}
-                  transition={{
-                    duration: 0.5,
-                    delay: index * 0.1,
-                    ease: [0.25, 0.1, 0.25, 1],
-                  }}
-                  whileHover={{ scale: 1.05 }}
+        {/* last event */}
+        {isEventPast && (
+          <>
+          <motion.div
+            className="md:grid grid-cols-2 gap-10 md:mt-20 pt-10 md:pt-16 border-t-2 border-black"
+            style={{ opacity: contentOpacity, y: contentY }}
+          >
+            <div className="mb-8">
+              <p
+                className={cn(
+                  textVariants({
+                    size: '3xl',
+                    font: 'oldman',
+                    weight: 'normal',
+                    leading: 'none',
+                  }),
+                  'transition-all duration-300',
+                )}
+              >
+                Previous Event
+              </p>
+              <div className='flex gap-1'>
+              <h3
+                className={cn(
+                  textVariants({
+                    size: '3xl',
+                    font: 'oldman',
+                    weight: 'bold',
+                    transform: 'uppercase',
+                    leading: 'none',
+                  }),
+                )}
+              >
+                {nextEvent?.title}
+              </h3>
+              <p
+                className={cn(
+                  textVariants({
+                    size: '3xl',
+                    font: 'oldman',
+                    weight: 'bold',
+                    transform: 'uppercase',
+                    leading: 'none',
+                  }),
+                  'mb-8',
+                )}
+              >
+                {(() => {
+                  const date = new Date(nextEvent?.date)
+                  const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
+                  const day = date.getDate()
+                  const year = date.getFullYear()
+
+                  const getOrdinal = (n: number) => {
+                    const s = ['TH', 'ST', 'ND', 'RD']
+                    const v = n % 100
+                    return n + (s[(v - 20) % 10] || s[v] || s[0])
+                  }
+
+                  return (
+                    <>
+                      {month} {getOrdinal(day)} {year}
+                    </>
+                  )
+                })()}
+              </p>
+              </div>
+              {nextEvent?.host && (
+                <div
+                  className={cn(
+                    textVariants({ size: '2xl', font: 'oldman', weight: 'normal', leading: 'none' }),
+                    'mb-6',
+                  )}
                 >
-                  <Image
-                    src={imageUrl}
-                    alt={imageData?.alt || 'Sponsor'}
-                    width={325}
-                    height={325}
-                    className="w-full h-full object-contain p-10"
-                  />
-                </motion.div>
-              )
-            })}
-          </div>
+                  {renderRichText(nextEvent.host)}
+                </div>
+              )}
+              {nextEvent?.description && (
+            <div
+                      className={cn(
+                        textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
+                        'max-w-2xl text-left text-pretty px-0',
+                      )}
+                    >
+                      {renderRichText(nextEvent.description)}
+                    </div>
+          )}
+            </div>
+            <div>
+              {nextEvent?.speakers && nextEvent.speakers.length > 0 && (
+                <SpeakersList speakers={nextEvent.speakers} titleRef={titleRef} />
+              )}
+            </div>
+          </motion.div>
+          {nextEvent?.sponsors && nextEvent.sponsors.length > 0 && (
+            <>
+              <div
+                className={cn(
+                  textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                  'text-center hover:opacity-70 transition-opacity cursor-pointer mt-20',
+                )}
+              >
+                WITH THANKS TO OUR SPONSORS
+              </div>
+              <div className="flex flex-wrap justify-center gap-10 mb-10 md:mb-0">
+                {nextEvent.sponsors.map((sponsor, index) => {
+                  const imageData =
+                    typeof sponsor.image === 'object' && sponsor.image !== null
+                      ? sponsor.image
+                      : null
+                  const imageUrl = imageData?.url
+                  if (!imageUrl) return null
+
+                  return (
+                    <motion.div
+                      key={sponsor.id || Math.random()}
+                      className="w-full max-w-xs w-[325px] h-auto md:h-[325px]"
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: '-50px' }}
+                      transition={{
+                        duration: 0.5,
+                        delay: index * 0.1,
+                        ease: [0.25, 0.1, 0.25, 1],
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      <Image
+                        src={imageUrl}
+                        alt={imageData?.alt || 'Sponsor'}
+                        width={325}
+                        height={325}
+                        className="w-full h-full object-contain p-10"
+                      />
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+          </>
+        )}
+
+        </>
+
+      ) : (
+        <>
+          <motion.div
+            className="md:grid grid-cols-2 gap-10 md:mt-20"
+            style={{ opacity: contentOpacity, y: contentY }}
+          >
+            <div className="mb-8">
+              <h3
+                className={cn(
+                  textVariants({
+                    size: '6xl',
+                    font: 'oldman',
+                    weight: 'bold',
+                    transform: 'uppercase',
+                    leading: 'under',
+                  }),
+                )}
+              >
+                {nextEvent.title}
+              </h3>
+              <p
+                className={cn(
+                  textVariants({
+                    size: '6xl',
+                    font: 'oldman',
+                    weight: 'bold',
+                    transform: 'uppercase',
+                    leading: 'under',
+                  }),
+                  'mb-8',
+                )}
+              >
+                {(() => {
+                  const date = new Date(nextEvent.date)
+                  const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
+                  const day = date.getDate()
+                  const year = date.getFullYear()
+
+                  const getOrdinal = (n: number) => {
+                    const s = ['TH', 'ST', 'ND', 'RD']
+                    const v = n % 100
+                    return n + (s[(v - 20) % 10] || s[v] || s[0])
+                  }
+
+                  return (
+                    <>
+                      {month} {getOrdinal(day)}
+                      <br />
+                      {year}
+                    </>
+                  )
+                })()}
+              </p>
+              {nextEvent.host && (
+                <div
+                  className={cn(
+                    textVariants({ size: '2xl', font: 'oldman', weight: 'normal', leading: 'none' }),
+                    'mb-6',
+                  )}
+                >
+                  {renderRichText(nextEvent.host)}
+                </div>
+              )}
+              <div className="text-base leading-relaxed">
+                {nextEvent.location?.address && (
+                  <p className="font-ufficio uppercase whitespace-pre-line"></p>
+                )}
+                {nextEvent.location?.addressLink && (
+                  <a
+                    href={nextEvent.location.addressLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      textVariants({ size: 'lg', font: 'ufficio', transform: 'uppercase' }),
+                      'whitespace-pre-line mt-2.5 opacity-100 hover:underline transition-opacity',
+                    )}
+                  >
+                    {nextEvent.location.address}
+                  </a>
+                )}
+              </div>
+            </div>
+            <div>
+              {nextEvent.speakers && nextEvent.speakers.length > 0 && (
+                <SpeakersList speakers={nextEvent.speakers} titleRef={titleRef} />
+              )}
+            </div>
+          </motion.div>
+          {nextEvent.description && (
+            <div className="my-10 md:my-14 text-center">
+              <button
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                className={cn(
+                  textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                  'hover:opacity-70 transition-opacity cursor-pointer underline',
+                )}
+              >
+                {isDescriptionExpanded ? 'LESS INFORMATION' : 'MORE INFORMATION'}
+              </button>
+              <AnimatePresence>
+                {isDescriptionExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    className="overflow-hidden mt-6"
+                  >
+                    <div
+                      className={cn(
+                        textVariants({ size: 'base', font: 'ufficio', transform: 'uppercase' }),
+                        'max-w-4xl mx-auto text-left md:text-center px-2.5 md:px-0 mt-5 md:mt-10',
+                      )}
+                    >
+                      {renderRichText(nextEvent.description)}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+          {nextEvent.ticketUrl && (
+            <SofterButton
+              as="a"
+              href={nextEvent.ticketUrl}
+              className={cn(
+                buttonVariants({ variant: 'primary', size: '3xl', width: 'full' }),
+                'block text-center',
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              BUY TICKETS
+            </SofterButton>
+          )}
+          {nextEvent.sponsors && nextEvent.sponsors.length > 0 && (
+            <>
+              <div
+                className={cn(
+                  textVariants({ size: 'sm', font: 'ufficio', transform: 'uppercase' }),
+                  'text-center hover:opacity-70 transition-opacity cursor-pointer mt-20',
+                )}
+              >
+                WITH THANKS TO OUR SPONSORS
+              </div>
+              <div className="flex flex-wrap justify-center gap-10 mb-10 md:mb-0">
+                {nextEvent.sponsors.map((sponsor, index) => {
+                  const imageData =
+                    typeof sponsor.image === 'object' && sponsor.image !== null
+                      ? sponsor.image
+                      : null
+                  const imageUrl = imageData?.url
+                  if (!imageUrl) return null
+
+                  return (
+                    <motion.div
+                      key={sponsor.id || Math.random()}
+                      className="w-full max-w-xs w-[325px] h-auto md:h-[325px]"
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: '-50px' }}
+                      transition={{
+                        duration: 0.5,
+                        delay: index * 0.1,
+                        ease: [0.25, 0.1, 0.25, 1],
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      <Image
+                        src={imageUrl}
+                        alt={imageData?.alt || 'Sponsor'}
+                        width={325}
+                        height={325}
+                        className="w-full h-full object-contain p-10"
+                      />
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
     </section>

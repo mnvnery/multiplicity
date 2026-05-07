@@ -11,15 +11,15 @@ interface MobileMenuProps {
     linkedin?: string | null
   }
   ticketUrl?: string | null
+  nextEventLabel?: string
 }
 
-const navItems = [
-  { href: '#next-event', label: 'Next' },
-  { href: '#past-events', label: 'Past' },
-  { href: '#contact', label: 'Contact' },
-]
-
-export function MobileMenu({ socialLinks, ticketUrl }: MobileMenuProps) {
+export function MobileMenu({ socialLinks, ticketUrl, nextEventLabel = 'Next' }: MobileMenuProps) {
+  const navItems = [
+    { href: '#next-event', label: nextEventLabel },
+    { href: '#past-events', label: 'Past' },
+    { href: '#contact', label: 'Contact' },
+  ]
   const [isOpen, setIsOpen] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
   const [isMounted, setIsMounted] = useState(false)

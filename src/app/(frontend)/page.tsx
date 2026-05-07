@@ -55,6 +55,8 @@ export default async function HomePage() {
   })
 
   const nextEvent = upcomingEvents.docs[0]
+  const isEventPast = nextEvent && new Date(nextEvent.date) < new Date()
+
 
   return (
     <div className="min-h-screen bg-yellow text-black">
@@ -174,6 +176,7 @@ export default async function HomePage() {
               : undefined
           }
           ticketUrl={nextEvent?.ticketUrl || undefined}
+          nextEventLabel="Next"
         />
       </AnimatedHeader>
 
@@ -199,28 +202,27 @@ export default async function HomePage() {
             >
               Next Event:
               <br className="md:hidden" />
-              <a href={`#next-event`} className="hover:underline md:ml-2">
-                {nextEvent?.title}&nbsp;
-                {(() => {
-                  const date = new Date(nextEvent.date)
-                  const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
-                  const day = date.getDate()
-                  const year = date.getFullYear()
-
-                  // Add ordinal suffix to day
-                  const getOrdinal = (n: number) => {
-                    const s = ['TH', 'ST', 'ND', 'RD']
-                    const v = n % 100
-                    return n + (s[(v - 20) % 10] || s[v] || s[0])
-                  }
-
-                  return (
-                    <>
-                      {month} {getOrdinal(day)} {year}
-                    </>
-                  )
-                })()}
-              </a>
+              {isEventPast || !nextEvent ? (
+                <a href="#next-event" className="hover:underline md:ml-2">
+                  COMING SOON
+                </a>
+              ) : (
+                <a href="#next-event" className="hover:underline md:ml-2">
+                  {nextEvent.title}&nbsp;
+                  {(() => {
+                    const date = new Date(nextEvent.date)
+                    const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
+                    const day = date.getDate()
+                    const year = date.getFullYear()
+                    const getOrdinal = (n: number) => {
+                      const s = ['TH', 'ST', 'ND', 'RD']
+                      const v = n % 100
+                      return n + (s[(v - 20) % 10] || s[v] || s[0])
+                    }
+                    return <>{month} {getOrdinal(day)} {year}</>
+                  })()}
+                </a>
+              )}
             </p>
           </RevealText>
           <RevealText delay={0.2} className="text-center">
@@ -256,7 +258,7 @@ export default async function HomePage() {
       )}
 
       {/* Next Event Section */}
-      {nextEvent && <NextEventSection nextEvent={nextEvent} />}
+      <NextEventSection nextEvent={nextEvent} isEventPast={isEventPast} />
       {/* Past Events Section */}
       {pastEvents.docs.length > 0 && (
         <PastEventsSection>
