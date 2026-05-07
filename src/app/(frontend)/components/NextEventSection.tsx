@@ -371,7 +371,7 @@ export function NextEventSection({ nextEvent, isEventPast }: NextEventSectionPro
                 )}
               >
                 {(() => {
-                  const date = new Date(nextEvent?.date)
+                  const date = new Date(nextEvent!.date)
                   const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
                   const day = date.getDate()
                   const year = date.getFullYear()
@@ -501,7 +501,7 @@ export function NextEventSection({ nextEvent, isEventPast }: NextEventSectionPro
                 )}
               >
                 {(() => {
-                  const date = new Date(nextEvent.date)
+                  const date = new Date(nextEvent!.date)
                   const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
                   const day = date.getDate()
                   const year = date.getFullYear()
